@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en"><head><title>Homework 4</title>
+</head>
+
+
+<body>
+
+<h1>Homework 4: An Interpreter for Mini-OCaml (MOCaml)</h1>
+
+<h2>
+Due Thursday, May 2, at 11:30pm</h2>
+<h3>Turn in your homework via the course web page as an updated version of the
+<tt>interp.ml</tt> text file that I have provided in the attached zip archive; do not rename the file.
+
+<h3>Make sure your code can be successfully loaded into the OCaml interpreter;
+if not you get an automatic 0 for the homework!</h3>
+
+<h3>Recall the CS131 Academic Honesty Policy!  You must say whom you
+discussed the assignment with at the top of your assignment, and also what
+other resources you used.</h3>
+
+<h3>IMPORTANT: The interpreter code loads properly on Mac OS X and Linux, but I have not tested it on
+a Windows machine.  If you encounter a problem, please use the SEASNet Linux machines instead.</h3>
+
+For this
+assignment, you will implement an interpreter (both an evaluator and a
+static typechecker) for a subset of OCaml in OCaml.  This is a fun way
+to get more practice with OCaml and also to really learn how the
+various language constructs behave.  You should obey our usual style
+rules and tips from past homeworks, of course (e.g., no use of any imperative features of OCaml).
+
+<p>Now on to the assignment!  First <tt>unzip</tt> the <tt>hw4</tt>
+directory from the zip archive I've provided.  The directory
+contains an incomplete interpreter for a subset of OCaml, which we'll
+call Mini-OCaml, or MOCaml.  The interpreter is structured similar to the one we did in class.
+Your job is to complete the interpreter by implementing the two functions <tt>eval</tt> and <tt>typecheck</tt>
+in the file <tt>interp.ml</tt>.  Along the way you will likely find it useful to define a few helper functions
+in that file as well.
+
+Your MOCaml interpreter should behave <i>exactly</i> like the regular
+<tt>ocaml</tt> interpreter for the subset of OCaml that we are
+handling.  So if you ever want to figure out what should happen when a particular expression is typechecked
+and/or evaluated,
+just try it in <tt>ocaml</tt> and find out!  There are only a few small differences between the <tt>ocaml</tt> interpreter and the one you are building:
+
+<ul>
+  <li>Your typechecker does not have to signal warnings where <tt>ocaml</tt> would do so, e.g. for pattern matching that is not exhaustive.</li>
+  <li>Your typechecker can assume, rather than needing to check, that a pattern refers to any particular variable name at most once.</li>
+  <li>The error messages displayed by your typechecker and evaluator will be different than in OCaml.
+  <li>You can exit your interpreter by typing a single semi-colon followed by a return.</li>
+</ul>
+
+
+<p>Here is a description of the various files I've provided and
+what you must do.  <b>Read the rest of this document carefully and completely before getting started!</b>
+
+<ul>
+
+<li><tt>lexer.ml</tt> and <tt>parser.ml</tt>: The first step in an interpreter is to <i>parse</i>
+  a given program, and I have done this for you.  The parser checks for syntactic correctness and
+  produces an <i>abstract syntax tree</i> that unambiguously represents the program.  These two files contain a parser for MOCaml; the files were 
+automatically generated from a high-level
+  description of the MOCaml grammar that I wrote using the
+    <tt>ocamllex</tt> and <tt>ocamlyacc</tt> parser generator tools.  <i>You do not need to look at
+  these files.</i></li><p>
+  
+  <li><tt>ast.ml</tt>:  This file defines the abstract syntax tree representation for MOCaml programs via  a collection of datatypes.
+  A MOCaml program is a single expression, which is also a legal OCaml expression, and its abstract syntax tree is represented as a value of type <tt>moexpr</tt>.  A few notes about the syntax of MOCaml:
+  <ul>
+    <li>
+   Top-level declarations such as <tt>let x = 3;;</tt> are not supported in MOCaml; a MOCaml program is just a single expression.</li>
+   <li>To avoid the need for type inference, all variable declarations must include an explicit type annotation.
+       The wildcard pattern similarly must include an explicit type annotation.</li></ul>
+  <i>Read this file to familiarize yourself with our representation of MOCaml programs, which
+    you will need to manipulate in your code.</i></li><p>
+  
+  <li><tt>env.ml</tt>: As we saw in class, both the evaluator and the
+  typechecker use a notion of <i>environment</i>.  This file contains
+  a module <tt>Env</tt> that defines a (polymorphic) type <tt>'a env</tt> for
+  environments along with associated operations.  The type <tt>'a
+  env</tt> maps strings (i.e., variable names) to values of type
+  <tt>'a</tt>.  We will use this same environment type both for
+  value environments (in the evaluator) and type environments (in the
+  typechecker).  <i>Read the comments in the file as well as the
+  "module type" definition, which gives the interface to the
+  environment module, in order to familiarize yourself with the
+  type for environments and the associated operations.</i> </li><p>
+
+<li><tt>interp.ml</tt> declares the <tt>eval</tt> and <tt>typecheck</tt> functions that you need to implement, but
+  they currently just raise an <tt>ImplementMe</tt> exception.  You will implement these functions in exactly the style we saw in class:
+
+  <ol>
+    <li> The <tt>eval</tt> function evaluates a given expression to a value, in the context of a given environment.
+    Your function should signal a match failure exception (by raising the <tt>MatchFailure</tt> exception defined in <tt>interp.ml</tt>) whenever the OCaml interpreter would.
+    Additionally, your interpreter should perform <i>dynamic typechecking</i> as we did in class, raising a <tt>DynamicTypeError</tt> exception whenever a type error is encountered.
+
+    <p>Dynamic typechecking is redundant since you are also implementing a static typechecker (see below), and a program that passes the static typechecker will never raise a <tt>DynamicTypeError</tt> at run time if your static typechecker is properly implemented.  But it is useful to see concretely the difference between the two; for instance, the dynamic typechecker should only raise an error when the program gets "stuck" at run time because it's trying to invoke a primitive operation with arguments of the wrong type, while the static typechecker will conservatively reject some good programs.
+    </li><p>
+    <li>The <tt>typecheck</tt> function produces the type of a given expression, in the context of a given type environment.  Your function should signal a type error (by raising the <tt>TypeError</tt> exception defined in <tt>interp.ml</tt>) whenever the OCaml interpreter would signal a static type error. </li>
+    </ol></li>
+
+<p>    You may use any functions that you want from the OCaml standard
+    library to implement your interpreter.  Some functions from the
+    <tt>List</tt> module should come in handy for manipulating the
+    various lists in our abstract syntax tree.  <p>
+
+The <tt>eval</tt> and <tt>typecheck</tt> functions should be implemented in the same style we saw in class, but they must handle some more sophisticated parts of the OCaml language, specifically:
+<ul>
+  <li> Rather than just variables, MOCaml includes several different kinds of patterns.  You will therefore find it useful to have a helper function for <tt>eval</tt>
+  that matches a value against a pattern.  A successful match should produce an environment, which maps the variables defined in the pattern to their values.  For example, the result of matching the value
+  <tt>((1,2),(3,4))</tt> against the pattern <tt>(((x1:int),(y1:int)),((x2:int),(y2:int)))</tt> is the environment
+  <tt>{(x1, 1),(y1, 2),(x2, 3),(y2, 4)}</tt>.  Similarly, you will find it useful to have a helper function for <tt>typecheck</tt> that typechecks a pattern, producing a type environment for the variables defined in the pattern, and also
+  producing the overall type of the pattern.</li><p>
+
+  <li>MOCaml includes (first-class) functions.  A key requirement is
+  to properly implement OCaml's static scoping behavior.  For this
+  purpose, notice that the representation <tt>FunctionVal</tt> of a
+  function value in <tt>ast.ml</tt> includes an environment.  You should use this component to store the function's
+  static (or <i>lexical</i>) environment, which can then be used whenever the function is invoked.</li><p>
+</ul>
+
+<li><tt>repl.ml</tt>:  This file contains code that implements the MOCaml <i>read-eval-print loop</i> or REPL, which continually reads an expression, parses it, typechecks it, evaluates it, and prints the result.
+    The function <tt>mocaml()</tt> can be invoked to start
+  the MOCaml interpreter.  <i>You
+  do not need to look at this file.</i></li><p>
+
+<li><tt>test.ml</tt>: Interpreters are complex and error-prone, so you will
+want to test yours extensively -- we'll be doing the same as part of
+grading.  To facilitate testing, I've provided a simple test harness in this file -- read the comments to see how to use this test
+  harness.  The function <tt>testEval()</tt> will run all the tests for your evaluator, and the function <tt>testTypecheck()</tt> will run
+  all the tests for your typechecker.  The list <tt>evalTests</tt> currently has a <i>very</i> small
+  number of simple tests for your evaluator, and similarly for the list <tt>typecheckTests</tt> to test your typechecker.  You should add
+  a lot more tests, for common cases, corner cases, error cases, etc.  I encourage you to share your tests with others
+  (e.g., on Piazza), to have
+  everyone collaborate to build a comprehensive test suite.  You may also find it useful to define a bunch of tests before starting
+  your implementation, to act as a kind of "spec" for what your code should do.</li><p>
+  
+  <li><tt>hw4.ml</tt>: This file simply loads all
+of the other files in order of dependencies.  Therefore, to load your
+MOCaml interpreter, type the directive <tt>#use hw4.ml;;</tt> in the
+OCaml interpreter.  Now type <tt>mocaml();;</tt> to fire up your interpreter or <tt>testEval();;</tt> and <tt>testTypecheck();;</tt> to run
+  your test suite on your code. <i>You do not need to understand
+the code in this file.</i></li><p>
+
+</ul>
+    
+</body></html>

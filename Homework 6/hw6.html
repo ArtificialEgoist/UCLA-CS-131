@@ -1,0 +1,358 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en"><head><title>Homework 6</title>
+</head>
+
+
+<body>
+
+<h1>Homework 6: Analyzing the 2010 Census Data</h1>
+
+<h2>
+Due Wednesday, May 29, at 11:30pm</h2>
+
+<h3>Recall the CS131 Academic
+Honesty Policy!  You must list who else you discussed the assignment with,
+and also what other resources you used.</h3>
+
+
+
+<h3>Overview and Goals</h3>
+
+The availability of electronic data is revolutionizing how
+governments, businesses, and organizations make decisions.  The
+United States Constitution has required since 1789 that a
+<i>census</i> be performed every 10 years.  In this project, you will
+process some data 
+from the 2010 census in order to efficiently answer
+certain queries about
+<i>population density</i>.  These queries will ask for the population
+in some rectangular area of the country.
+
+<p>You will implement the desired functionality in four different ways
+that vary in their simplicity and efficiency.  Some of the ways will
+require fork-join parallelism and, in particular, Java's ForkJoin
+Framework.  Most of the software design is left to
+you, though we will describe the algorithms you must use.
+
+<p>Aside from
+getting experience with fork/join parallelism, a key goal of the
+project is for you to come up with a design that exploits the object-oriented features of
+Java.  For example, as in the last homework you should always prefer asking an object to perform a task instead of
+asking an object "what are you?" and then performing the task yourself.  Also look for opportunities to reuse code
+across the different versions of the algorithm via class inheritance.
+
+<h3>The Assignment</h3> 
+
+<h4>Overview of what your program will do</h4>
+
+<p>
+The file <code>CenPop2010.txt</code> (distributed with the project files) contains real data published by 
+the <a href="http://www.census.gov/">U.S. Census Bureau</a>.
+The data divides the U.S. into 220,333 geographic areas called 
+&quot;census-block-groups&quot; and reports for 
+each such group the population in 2010 and the latitude/longitude of the group.  It actually reports the
+average latitude/longitude of the people in the group, but that will not concern us: just assume everyone in the group
+lived on top of each other at this single point.
+</p>
+
+<p>Given this data, we can imagine the entire U.S. as a giant
+rectangle bounded by the minimum and maximum latitude/longitude of
+all the census-block-groups.  Most of this rectangle will not have any population:
+</p>
+<ul>
+<li>The rectangle includes all of Alaska, Hawaii, and Puerto Rico and therefore, since it is a rectangle,
+a lot of ocean and Canada that have no U.S. popluation.</li>
+<li>The continental U.S. is not a rectangle.  For example, Maine is well east of Florida.</li>
+</ul>
+
+<p>
+Note that the code we provide you 
+<i>changes the latitude</i> for each census group.  That is because
+the Earth is spherical but our grid is rectangular.  Our code uses the
+<i>Mercator Projection</i> to map a portion of a sphere onto a
+rectangle (see <code>CensusGroup.java</code>).  It stretches latitudes more as you move North.  You do not
+have to understand this except to know that the latitudes you will
+compute with are <i>not</i> the latitudes in the input file.  You can
+manually disable this projection while testing by changing the code if
+you find it helpful to do so.
+</p>
+
+<p>
+We can next imagine answering queries related to areas inside the U.S.:
+</p>
+<ol>
+<li>For some rectangle inside the U.S. rectangle, what is the 2010 census population total?</li>
+<li>For some rectangle inside the U.S. rectangle, what percentage of the total 2010 census U.S. population is in it?</li>
+</ol>
+<p>
+Such questions can reveal that population density varies dramatically
+in different regions, which explains, for example, how a presidential
+candidate can win despite losing the states that account for most of
+the country's geographic area.
+</p>
+
+<h4>The API for Population Queries</h4>
+
+The file <tt>PopQueryAPI.java</tt> contains an interface for
+supporting population queries.  The file <tt>PopulationQuery.java</tt>
+contains a class that is intended to meet this interface, and must do
+so in order to work with the rest of our code, but it currently does
+not.  Your job is to implement the two methods from the
+<tt>PopQueryAPI</tt> in the class <tt>PopulationQuery</tt>.  The two
+methods are as follows:
+
+<ul> <li> The method <tt>void preprocess(String filename, int x, int
+y, int versionNum)</tt> should parse in the data from the given file
+(see the <tt>parse</tt> method in <tt>PopulationQuery</tt>) and perform
+some preprocessing depending on the version number specified (see
+below).  All versions will need to find the four corners of the rectangle containing the United States,
+  i.e. the minimum and maximum
+latitude and longitude over all the census-block-groups. Note that
+smaller latitudes are farther south and smaller longitudes are farther
+west. Also note all longitudes are negative, but this should not cause
+any problems.
+
+  <p>The integers <tt>x</tt> and <tt>y</tt> describe the size of the grid
+  of rectangles that is used for population queries.</li>
+Suppose the values for <code>x</code> and <code>y</code> are 100 and
+50.  That would mean we want to think of the rectangle containing the
+entire U.S. as being a grid with 100 columns (the x-axis) numbered 1
+through 100 from West to East and 50 rows (the y-axis) numbered 1
+through 50 from South to North.  (Note we choose to be &quot;user
+friendly&quot; by not using zero-based indexing.)  So the grid would
+have 5000 little rectangles in it.  Larger <code>x</code> and
+<code>y</code> values will let us answer
+queries more precisely but will require more time and/or space.
+</li>
+
+<li>
+<p>
+The method <tt>Pair&lt;Integer, Float&gt; singleInteraction(int w, int s, int e, int n)</tt> performs a single query, which is simply four numbers:
+<ul>
+<li>The western-most column that is part of the rectangle; error if this is less than 1 or greater than <code>x</code>.</li>
+<li>The southern-most row that is part of the rectangle; error if this is less than 1 or greater than <code>y</code>.</li>
+<li>The eastern-most column that is part of the rectangle; error if this is less than the Western-most 
+column (equal is okay) or greater than <code>x</code>.</li>
+<li>The northern-most row that is part of the rectangle; error if this is less than the Southern-most 
+column (equal is okay) or greater than <code>y</code>.</li>
+</ul>
+<p>The method returns a pair of the total population in the specified region as well as the percentage
+of the total population of the United States that this represents.  See
+<tt>Pair.java</tt> for the definition of the <tt>Pair</tt> class.
+
+</ul>
+
+
+
+<h4>Four Different Implementations</h4>
+
+<p> You will implement four versions of your program.  You will need
+to define some new classes, which will do much of the work for each
+version and will be used by the <tt>PopulationQuery</tt> class.  There
+are signficant opportunites to make use of subtyping as well as to
+share code among the different versions via inheritance, and you should seize these
+opportunities.
+
+<p><i>Design note:</i>  As usual, <i>you should never need to use manual type testing such
+as <tt>instanceof</tt> tests and related programming idioms</i>.  You <i>will</i> have to test the version-number argument passed to <tt>preprocess</tt> to decide which version to use, but <b>you should only do this only once, rather than once per query</b>.
+
+
+<h5>Version 1: Simple and Sequential</h5>
+
+<p>For preprocessing, process the data to find the four
+corners of the U.S. rectangle using a sequential algorithm.  This is necessary in order to determine the
+length and width of each grid cell.
+Then for each query do
+another sequential traversal to answer the query (determining for
+each census-block-group whether or not it is in the query rectangle).  The simplest
+and most reusable approach for each census-block-group (to ease the implementation of later versions)
+is probably to first
+compute what grid position it is in and then see if this grid position is in the
+query rectangle.
+</p>
+
+<h5>Version 2: Simple and Parallel</h5>
+
+<p>This version is the same as version 1 <i>except</i> both the initial
+corner-finding and the traversal for each query should use the ForkJoin
+Framework in order to perform the traversals in parallel.
+Finding the corners should require only one data traversal, and
+each query should require only one additional data traversal.
+</p>
+
+<h5>Version 3: Smarter and Sequential</h5>
+
+<p>This version will, like version 1, not use any parallelism, but it will perform
+additional preprocessing so that each query can be answered in O(1) time.  This involves
+two additional steps:
+</p>
+<ol>
+<li>
+First create a grid of size <code>x*y</code> (use an array of arrays) where each element is
+an <code>int</code> that will hold the total population for that grid position.  Recall <code>x</code> and
+<code>y</code> are the arguments to <tt>preprocess</tt>
+  for the grid size.  Compute the grid using
+a single traversal over the input data.
+</li>
+<li>
+Now modify the grid so that instead of each grid element holding the
+total for that position, it instead holds the total for 
+all positions that are neither farther east nor farther
+south.  In other words, grid element <i>g</i> stores the total population 
+in the rectangle whose upper-left is the north-west
+corner of the country and the lower-right corner is <i>g</i>.
+This can be done in a single pass over the grid if you're careful about the
+order you process the elements. Keep reading...
+</li>
+</ol>
+<p>
+For example, suppose after step 1 we have this grid:
+</p>
+<pre>
+0   11   1  9
+1   7    4  3
+2   2    0  0
+9   1    1  1
+</pre>
+<p>
+Then step 2 would update the grid to be:
+</p>
+<pre>
+0   11  12  21
+1   19  24  36
+3   23  28  40
+12  33  39  52
+</pre>
+<p>
+There is an arithmetic trick to completing the second step in a single pass over the grid.  
+Suppose our grid positions
+are labeled starting from (1,1) in the bottom-left corner.  (You can implement it differently, but this 
+is how queries are given.)  So our grid is:
+</p>
+<pre>
+(1,4)  (2,4)  (3,4)  (4,4)
+(1,3)  (2,3)  (3,3)  (4,3)
+(1,2)  (2,2)  (3,2)  (4,2)
+(1,1)  (2,1)  (3,1)  (4,1)
+</pre>
+<p>
+Now, using standard Java array notation, where a grid is just a two-dimensional array, or in Java an array of arrays, notice that after step 2, for
+any element not on the left or top edge:
+<code>grid[i][j]=orig+grid[i-1][j]+grid[i][j+1]-grid[i-1][j+1]</code>
+where <code>orig</code> is <code>grid[i][j]</code> after step 1.  So
+you can do all of step 2 in one pass by simply proceeding one row at a
+time top to bottom -- or one column at a time from left to right, or
+any number of other ways.  The key is that you update (i-1, j), (i, j+1), and (i-1, j+1) before
+(i, j).
+</p>
+
+<p>
+Given this unusual grid, we can use a similar trick to answer queries in O(1) time.  Remember that a query gives us
+the corners of the query rectangle.  In our example above, suppose the query rectangle has
+corners (3,3), (4,3), (3,2), and (4,2).  The initial grid would give us the answer 7, but
+we would have to do work proportional to the size of the
+query rectangle (small in this case, potentially large in general).
+After the second step, we can instead get 7 as 40 - 21 - 23 + 11.  In general, the trick is to:
+</p>
+<ul>
+<li>Take the value in the bottom-right corner of the query rectangle.</li>
+<li>Subtract the value just above the top-right corner of the query rectangle (or 0 if that is outside the grid).</li>
+<li>Subtract the value just left of the bottom-left corner of the query rectangle (or 0 if that is outside the grid).</li>
+<li>Add the value just above <i>and</i> to the left of the upper-left corner of the query rectangle (or 0 if that is outside the grid).</li>
+</ul>
+<p>
+Notice this is O(1) work.  Draw a picture or two to convince yourself this works.
+</p>
+
+<p>
+Note: A simpler approach to answering queries in O(1) time would be to pre-compute the answer
+to every possible query ahead of time.  But that would require significantly more space and time usage during
+the preprocessing phase.
+</p>
+
+<h5>Version 4: Smarter and Parallel</h5>
+
+<p>As in version 2, the initial corner finding should be done in
+parallel.  As in version 3, you should create the grid that allows
+O(1) queries.  The <i>first</i> step of building the grid should be
+done in parallel using the ForkJoin Framework.  The <i>second</i> step
+should remain sequential; just use the code you wrote in version 3.
+Parallelizing it could be done but is significantly more complicated.
+
+<h4>Code Provided To You</h4>
+
+<ul>
+<li>The graphical user interface for the project is implemented in the files
+<code>InteractionPane.java</code>, <code>MapPane.java</code>, <code>CensusGUI.java</code>, <code>USMap.jpg</code>, <code>contUSmap.jpg</code>.  <i>You do not need to look at these files.</i><p>
+</li>
+<li>You <i>do</i> need to understand these files: <code>CensusData.java</code>, <code>CensusGroup.java</code>, <code>Rectangle.java</code>, <code>Pair.java</code>, <code>PopQueryAPI.java</code>, <code>PopulationQuery.java</code>, <code>CenPop2010.txt</code>.
+The census data is contained in <code>CenPop2010.txt</code>.
+The <code>PopulationQuery</code> class has a method to parse census data,
+producing a <code>CensusData</code> object, which stores the data as an array of
+<code>CensusGroup</code> objects.  <code>Rectangle</code> is a helper class that you
+may find useful.</li>
+</ul>
+
+<p>You will also need to use Java's ForkJoin framework.  It comes installed with Java 7 (which is on the SEASNet Linux servers in <tt>/usr/local/cs/bin</tt>), but you need to include it as a separate library for use with Java 6.
+To check what version of Java
+you are running, you can use the command <tt>java -version</tt>.
+
+<p>
+If you are using Java 6, put the <tt>jsr166.jar</tt> file I've provided in the current directory, and when you
+run <tt>javac</tt> or <tt>java</tt> include this option:  <tt>-Xbootclasspath/p:jsr166.jar</tt>
+<br>
+If you're using Eclipse, the instructions
+<a href="http://www.cs.washington.edu/homes/djg/teachingMaterials/spac/grossmanSPAC_forkJoinFramework.html#installation">here</a> might also help.
+
+<h4>Running the Code</h4>
+
+<p>Our program presents a map of the U.S. as a background
+image with a grid overlaid on it. You can
+highlight arbitrary rectangles over the map. When you
+select <tt>run</tt>, the GUI will invoke your code with the selected
+query rectangle and display the result.</p>
+
+<p>To start the program, simply run the <tt>main</tt> method of the
+class <code>CensusGUI</code> by invoking <tt>java CensusGUI</tt> after compiling everything
+with the command <tt>javac CensusGUI.java</tt>.  If you're using Java 6, you'll need to include an extra
+argument in each of these commands to include the ForkJoin Framework library.  See the instructions above.
+<p>
+
+<p>In the GUI, you can &quot;zoom in&quot; to the continental U.S.  When zoomed, keep in mind two things:</p>
+<ul>
+<li>Zooming means the entire grid is not shown.  For example, if the grid has 12 rows and 23 columns, zooming
+will show 6 rows (with most of the bottom one not shown) and 13 columns.  So even selecting all the <i>visible</i> grid
+rectangles will not select all the <i>actual</i> grid rectangles.</li>
+<li>If you select partly-viewable grid rectangles on the edge, this selects the entire grid rectangle,
+<i>including</i> the population for the census-block-groups in the not-visible portion of the grid rectangle.
+</li>
+</ul>
+
+<p>
+During development, you will probably find it useful to write your own
+<tt>main</tt> method (in a class of your choice) that runs specific portions of your code for testing purposes.  You will also want to make your own synthetic data for testing purposes, so you can make sure you're getting the expected answers.
+</p>
+
+
+<h4>Homework Submission</h4>
+
+Turn in a zip file containing a directory of <i>all</i>
+the files needed to compile and run your code, including ones that we have
+provided to you.
+If your code is in a directory called <tt>hw6</tt>, you can create the zip file
+<tt>hw6.zip</tt> on the SEAS machines with the command
+<tt>zip -r hw6.zip hw6</tt>.
+
+<p>
+<b>Make sure your code can be successfully compiled with the <tt>javac</tt> compiler (in conjunction with the ForkJoin framework); 
+if not you get an automatic 0 for the homework!</b>
+
+<h4>Acknowledgments</h4>
+
+This homework assignment --- the assignment writeup as well as the code --- is a
+lightly modified version of a <a href="http://www.cs.washington.edu/homes/djg/teachingMaterials/spac/grossmanSPAC_project.html">project</a> developed by Dan Grossman at the University of
+Washington.
+
+
+</body></html>

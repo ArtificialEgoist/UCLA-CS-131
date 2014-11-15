@@ -1,0 +1,239 @@
+Learn concepts underlying all programming languages
+	Syntax, semantics, expressions, values, types
+
+Study three major programming paradigms
+	Functional (ML), OOP (Java), General Purpose Logic Programming (Prolog)
+
+Why Study Non-mainstream Languages?
+	Makes you a better programmer in any language
+Ex: Functional programming
+	Google Maps: reduce programming model uses this to analyze large data sets in parallel
+	Used to make money in the stock market
+
+Today's weird language features are tomorrow's mainstream language features
+	OOP, garbage collection, static typechecking in Java
+	Prototypes, etc.
+
+Programming the "Right" Way
+	Write for people to read first, then for machines to execute
+
+Theme: interface vs. implementation
+
+------------------------------------------------------------------------------------------------------------------------
+
+Todd Millstein
+
+Grading:
+	Homework (35%)
+	Midterm (30%) - in class, May 6
+	Final	(35%)
+
+------------------------------------------------------------------------------------------------------------------------
+
+OCaml and Functional Programming
+
+Functional programming: function that takes an input and gives an output while making no other changes (doesn't update arrays, global variables, etc.); incorporates recursion, induction
+
+Distinguishing Characteristic: can't update the value of a variable after it's been initialized
+	Reason why loops can't be used; we can't increment the counting variable
+
+
+
+GREATLY simplified programs and reasoning about program:
+	Functions behave like mathematical functions
+		Always produce the same result on the same arguments
+	Nothing is mutable (no one can change anything); no need to worry about what's mutable, who can mutate, etc.
+	Parallelism for free (no global side effects, so nothing conflicts)
+		Any two functions can be run in parallel
+
+Powerful language features that go along with functional style
+	Recursion
+	Pattern matching
+	First-class functions (like Python)
+
+OCaml Grammar Summary:
+	E ::= N | E + E | E - E | E * E | E / E
+	 | let X=E in E 				(local variable declaration)
+	 | let [rec] F X = E in E			(local function declaration)
+	 | E E						(invoke a function)
+	 | if E then E else E				(conditional)
+	 | match E with P1 -> E1 | ... | Pn -> En	(matching)
+	 | []						(empty list)
+	 | E::E						(non-empty list; and the "cons" operator
+	 | [E1;...;En]					(list of n items)
+	 | (E1,...,En)					(n-ary tuple)
+
+	N ::= 0 | 1 | 2 | 3 | ...
+
+	P ::= N
+	    | _						(wildcard, matches everything)
+	    | []					(empty list)
+	    | P::P					(non-empty list)
+	    | X						(declare a variable)
+	    | (P1,...,Pn)				(tuple pattern)
+
+Lists:
+
+a list is either...
+	the empty list []
+	non-empty list	head::tail
+		value (the head)
+		another list (the tail)
+
+1::2::3::[]					(abbreviated as [1; 2; 3])		(:: is right associative)
+1::(2::(3::[]))					
+
+
+3 + 4
+3 + 4 + 5
+
+3 - 2 - 1
+int = 0
+
+3 - (2 - 1)
+int = 2
+
+How to write a function recursively:
+	Define the behavior for one or more base cases
+	Define one or more recursive class
+		Assume the recursive call does the right thing
+		Figure out what to do to that result to get the right answer
+
+------------------------------------------------------------------------------------------------------------------------
+
+OCaml Examples (using interpreter):
+
+Arithmetic:
+	3+4;;
+	int = 7
+
+Declaring variables:
+	let x=3 in x+4;;
+	int = 7
+	x
+	Error: Unbound value x (since x is not in scope anymore)
+
+Declaring at top level:
+	let x=3;;
+	x;;
+	int = 3
+
+Declaring a function:
+	# let twice y = y*2;; (twice is the function, everything after the equal sign is the body of the function)
+	int -> int = <fun> 		(that is, a function; OCaml tells us input/output types)
+
+Invoking a function:
+	twice 34;;	OR twice(34);;	OR (twice)(34);;
+	int = 68
+
+Declaring/invoking a local function:
+	let times4 y = y*4 in times4 50;;
+	int = 200
+	times4;;
+	Error: Unbound value times4
+
+Example:
+	let x=3 in let y=4 in x*y;;
+
+Example:
+	5 + (let times4 y = y*4 in times4 50);;
+	int = 205
+
+Non-trivial example:
+	let rec factorial n = 			(Must declare recursive function 'rec'; otherwise, function cannot refer to itself)
+	  if n = 0 then 1 else n * (factorial(n-1));;
+	val factorial : int -> int= <fun>
+
+	factorial 5;;
+	int = 120
+
+Rewritten using pattern matching:
+	let rec fact n = 
+	 match n with
+	  0 -> 1
+	| _ -> n * fact(n-1);;			(Cases in match statement are separated by |, or ORs)
+	val fact : int -> int = <fun>
+
+	fact 5;;
+	int = 120
+
+	let rec factBroken n = 
+	 match n with
+	  0 -> 1;;
+	Warning 8: this pattern-matching is not exhaustive.
+	Here is an example of a value that is not matched: 1
+
+IsEven example:
+	let rec isEven n =			(Assume n > 0; otherwise, we have infinite case)
+	 match n with
+	  0 -> true
+	  | 1 -> false
+	  | _ -> isEven(n-2);;
+
+	isEven 53;;
+	bool = false
+	isEven 54;;
+	bool = true
+
+IsEven example with all cases:
+	let rec isEven n =
+	 match n with
+	  0 -> true
+	  | 1 -> false
+	  | _ ->						(Remember that order of cases matters)
+	    if n<0 then isEven(n+2) else isEven(n-2);;		(File functions work (which don't need end ;;) as in #use "notes-4-1";;)
+	    OR
+	    isEven (if n<0 then n+2 else n-2);;			(Parenthesis are actually needed here; we can loop inside)
+
+Creating Lists:
+	let myList = [1;2;3];;
+	val myList : int list = [1; 2; 3];
+	0::myList;;
+	int list = [0; 1; 2; 3];
+	myList;;
+	int list = [1; 2; 3];
+	["hi"; "bye"];
+	[[1'2]; [3;4]];;
+	int list list = [[1; 2]; [3; 4]]
+
+Adding Lists:
+	let rec sumLst l =
+	 match l with
+	  [] -> 0						(with h::t below, we bind h and t to the head and tail, respectively)
+	| h::t -> h + (sumLst t);;				(using [1;2;3;4], h is 1, t is [2;3;4]
+
+Concatenating Lists:
+	let rec concat l1 l2 =
+	 match l1 with
+	  [] -> l2
+	| x::xs -> x::(concat xs l2);;				(concat is a built-in operator, @, as in [1;2;3]@[4;5;6])
+
+Adding Consecutive Items in List:
+	let rec sumConsecutive l =				(sumConsecutive [1;2;3;4;5]=[3;7;5])
+	 match l with
+	  [] -> l 						(same as returning [])
+	| x::[] -> l						(x::[] is same as [x] or [_]; we can just return [x] as well)
+	| x1::(x2::xs) -> (x1+x2)::(sumConsecutive xs);;	(x1::(x2::xs) is the same as x1::x2::xs)
+
+Adding Consecutive Items Alternative:
+	match l with
+	 x1::(x2::xs) -> (x1+x2)::(sumConsecutive xs);;
+	| _ -> l;;
+
+Tuples:
+	(3, "hi", false);;
+	int * string * bool = (3, "hi", false)
+	(3, ("hi," 4.5), false);;
+	int * (string * float) * bool = (3, ("hi," 4.5), false)
+
+	let add (x, y)=x+y;
+
+	let add p =
+	 match p with
+	  (x, y) -> x+y;;
+
+	let (x,y) = (3,4);;
+	val x : int = 3
+	val y : int = 4
+
+------------------------------------------------------------------------------------------------------------------------

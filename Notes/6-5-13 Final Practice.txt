@@ -1,0 +1,400 @@
+CS131(D)
+6/7/13
+12-2p
+Final Review
+
+--- Concepts from lecture:
+
+* OCaml
+  - recursion, higher-order functions, datatypes, pattern matching,
+  modules, exceptions
+
+  - static vs. dynamic scoping
+  - static vs. dynamic typechecking
+  - static type inference
+  - parametric polymorphism vs. static overloading
+  - interface vs. implementation
+
+* Java
+  - inheritance, subtyping, dynamic dispatch
+     
+    - inheritance is about sharing code
+      - a property of how something is implemented
+
+    - subtyping is about interface compatibility
+      if S is a subtype of T, then objects of type S can be safely
+      used wherever objects of type T are expected
+
+    - dynamic dispatch
+       C o = ...;
+       o.m(...)
+
+       determines which m method to invoke *dynamically* (at run
+       time), based on the run-time class of the object o
+  - parametric and subtype polymorphism
+  - overriding vs overloading
+  - static fields/methods.
+  - Java's memory model
+    - object references, aliasing
+
+ - generics
+
+ - exceptions
+
+ - fork/join parallelism
+
+ - MapReduce
+
+* Prolog
+  - unification, resolution
+
+  - build a proof tree given a program and a query
+     - how many solutions, in what order, terminate?
+
+--- Exercises:
+
+1. Assume the following knowledge-base:
+
+married(alex,lina).
+married(oscar,eva).
+married(otto,peter).
+married(john,ruth).
+
+male(alex).
+male(oscar).
+male(otto).
+male(peter).
+male(john).
+
+female(lina).
+female(eva).
+female(irma).
+female(ruth).
+female(kim).
+
+parent(alex,ruth).
+parent(lina,eva).
+parent(otto,irma).
+parent(peter,john).
+parent(peter,oscar).
+parent(ruth,kim).
+
+1a. Define brotherinlaw(X,Y) and sisterinlaw(X,Y) :- X is the brother/sister-in-law of Y.
+
+ANS.
+
+married_sym(A,B) :- married(A,B).
+married_sym(A,B) :- married(B,A).
+sibling(A,B) :- parent(P,A), parent(P,B), \+(A=B).
+sibling(A,B) :- parent(P1,A), parent(P2,B), married_sym(P1,P2).
+brotherinlaw(X,Z) :- male(X), sibling(X,Y), married_sym(Y,Z).
+sisterinlaw(X,Z) :- female(X), sibling(X,Y), married_sym(Y,Z).
+
+ 
+1b. Define ancestor(X,Y) :- X is an ancestor of Y.
+
+ANS.
+
+any_parent(P, A) :- parent(P,A).
+any_parent(P2, A) :- parent(P1,A), married_sym(P1,P2).
+
+ancestor(X,Y) :- any_parent(X,Y).
+ancestor(X,Y) :- any_parent(X,P), ancestor(P,Y).
+
+1c. Define using setof() the predicate ancestors(As,X) :- As is the set of all ancestors of X.
+
+ANS.
+
+ancestors(As,X) :- setof(A,ancestor(A,X),As).
+
+1d. Illustrate why query "sibling(ruth,X)" has two duplicate solutions by showing the Prolog 
+    search tree, assumging we define the "sibling" predicate as the following. In this specific 
+    problem, in the search tree only show branches of predicates with matching names.
+
+married_sym(A,B) :- married(A,B).
+married_sym(A,B) :- married(B,A).
+any_parent(P, A) :- parent(P,A).
+any_parent(P2, A) :- parent(P1,A), married_sym(P1,P2).
+sibling(A,B) :- any_parent(P,A), any_parent(P,B), \+(A=B).
+
+ANS.
+
+[ sibling(ruth,X) ]
+         |
+	 | A = ruth, B = X
+	 |
+[ any_parent(P,ruth), any_parent(P,X), \+(ruth=X) ]
+         |	      		       		  \
+	 |					   \
+	 |					    \
+[ parent(P,ruth), any_parent(P,X), \+(ruth=X) ]	     [ parent(P1,ruth), married_sym(P1,P), any_parent(P,X), \+(ruth=X) ]
+         |	  		   	      	            |
+	 | P = alex					    | P1 = alex
+	 |     						    |
+[ any_parent(alex,X), \+(ruth=X) ]	             [ married_sym(alex,P), any_parent(P,X), \+(ruth=X) ]
+         |                       \		       			             \
+	 | 			  \						      \
+	 | 			   \						       \
+[ parent(alex,X), \+(ruth=X) ] 	    [ parent(P1,X), married_sym(P1,alex), \+(ruth=X) ]  ...
+         |                                  |	    			  	         \
+         | X = ruth			... | ...					  \
+	 |     				    | 						   \
+[ \+(ruth=ruth) ]			    P1 = lina					   P = lina
+         |				    X = eva					   X = eva
+	 |				      ok!					     ok!
+	 no
+
+
+2. Define the predicate "moves" to complete the program below. Robot should not revisit any square
+   in its path to the goal square.
+
+/* 
+
+ Maze:
+-------------
+| R | X | G | 4
+-------------
+|   |   |   | 3
+-------------
+|   | X |   | 2
+-------------
+|   |   |   | 1  
+-------------
+  1   2   3
+
+*/
+
+
+/* a square: [<col#>,<row#>] */
+
+rows(4).
+columns(3).
+robot_at([1,4]).
+goal_at([3,4]).
+block_at([2,2]).
+block_at([2,4]).
+
+next([Col,Row], down, [Col,RowDown]) :- RowDown is Row - 1, RowDown > 0.
+next([Col,Row], up, [Col,RowUp]) :- rows(R), RowUp is Row + 1, RowUp < R + 1.
+next([Col,Row], left, [ColLeft,Row]) :- ColLeft is Col - 1, ColLeft > 0.
+next([Col,Row], right, [ColRight,Row]) :- columns(C), ColRight is Col + 1, ColRight < C + 1.
+
+move(CurrSq,Dir,NextSq) :- next(CurrSq,Dir,NextSq), \+block_at(NextSq).
+
+find_path(Moves) :- robot_at(RobotPos), 
+	            goal_at(GoalPos),
+	            moves(RobotPos,Moves,GoalPos).
+
+moves(CurrSq, Moves, destSq) :- ?
+
+ANS.
+
+moves_h(CurrSq,[],CurrSq,_).
+moves_h(CurrSq,[MovesFirst|MovesRest],DestSq,Visited) :- 
+    move(CurrSq,MovesFirst,NextSq),
+    \+member(CurrSq,Visited),
+    moves_h(NextSq,MovesRest,DestSq,[CurrSq|Visited]).
+
+moves(CurrSq,Moves,DestSq) :- moves_h(CurrSq,Moves,DestSq,[]).
+
+3. Rotate a list N places to the right.
+   e.g. rotate([1,2,3],1,[3,1,2]). 
+
+ANS.
+
+split(L,0,[],L).
+split([X|Xs],N,[X|Ys],Zs) :- N > 0, N1 is N - 1, split(Xs,N1,Ys,Zs).
+
+rotate([],_,[]).
+rotate(L1,N,L2) :-
+   length(L1,NL1), 
+   N1 is N mod NL1, 
+   split(L1,N1,S1,S2), 
+   append(S2,S1,L2).
+
+
+4. One of the properties of red-black trees are that "every path from the root node to any of the 
+   leaves contains the same number of black nodes." Implement the boolean method 
+   sameBlackNodeCountInAllPaths() in the class definition below. Assume leaf nodes have a value,
+   but their left and right fields are null. Here is a sample valid red-black tree:
+
+       	     	  B(13)
+		/	\
+	      R(8)	R(17)
+	     /  \       /   \
+           B(1) B(11) B(15) B(25)
+	     \               /  \
+	      R(6) 	   R(22) R(27)
+
+enum Color { RED, BLACK }
+
+class RedBlackTree {
+    public Color color;
+    public int value;
+    public RedBlackTree left, right;
+    public boolean sameBlackNodeCountInAllPaths() {
+
+    }
+}   
+
+ANS.
+
+
+class Pair<A,B> {
+    public A fst;
+    public B snd;
+    Pair(A fst, B snd) { this.fst = fst; this.snd = snd; }
+}
+
+class RedBlackTree {
+    public boolean sameBlackNodeCountInAllPaths() {
+       return checkBlackNodeCountInAllPaths().fst;
+    }
+    Pair<Boolean,Integer> checkBlackNodeCountInAllPaths() {
+        Pair<Boolean,Integer> res = new Pair<Boolean,Integer>(true,0);
+        Pair<Boolean,Integer> leafCheck = new Pair<Boolean,Integer>(true,0);
+    	Pair<Boolean,Integer> leftCheck = left == null ? leafCheck : left.checkBlackNodeCountInAllPaths();
+	Pair<Boolean,Integer> rightCheck = right == null ? leafCheck : right.checkBlackNodeCountInAllPaths();	
+	res.fst = leftCheck.fst && rightCheck.fst && leftCheck.snd == rightCheck.snd;
+	res.snd = leftCheck.snd + (color == Color.BLACK ? 1 : 0);	
+	return res;
+    }
+}
+
+5a. Write an ocaml function "digdeep" that given a value "r", a function "f", and an initial arugment 
+   "a" for it, it keeps running (f (... (f (f a))) until the result of function is equal to r. 
+   It should return how many times f had to be called. If r and a are equals initially, it should 
+   return 0. 
+
+let digdeep r f a =
+
+ANS.
+
+let digdeep r f a =
+  let rec helper r f a n =
+    if (a = r) then n else (helper r f (f a) (n + 1)) in
+  helper r f a 0
+
+5b. Now write a function "bestdig" that given a value "r", a non-empty list of functions "fl", 
+    and an initial arugment "a" for them, returns a function in the list for which "digdeep" returns
+    the the shortest count. Your code should include a single call to one of the List.fold_ functions.
+
+let bestdig r fl a =
+
+ANS.
+
+let bestdig r fl a =
+    let fst::rst = fl in
+    let (_,res) =
+    List.fold_left 
+      (fun (ct,fn) e  -> 
+        (let c = (digdeep r e a) in if c < ct then (c,e) else (ct,fn))) 
+      (digdeep r fst a,fst) rst in
+    res
+
+
+6. What does the following print?
+
+void m(Point p) {    
+    q = new Point(4,1);
+    p = q;
+    q.x--;
+    return p;
+}
+
+Point p = new Point(5,3);
+m(p);
+system.out.println(p.x);
+
+ANS.
+
+5
+
+7. Which are cases of acceptable overloading in Java? Explain each case.
+
+int changeDate(int Month) ;  
+float changeDate(int Year);    
+
+ANS:
+
+//compiler error - can't overload by changing just 
+//the name of the parameter (from Month to Year):    
+
+int changeDate(int Year, int Month) ;  
+int changeDate(int Year);    
+
+ANS:
+
+//valid case of overloading, since there is an   
+//extra parameter in the first method:        
+
+
+int changeDate(int Year) ;  
+float changeDate (int Year);    
+
+ANS:
+
+//compiler error - can't overload based on the   
+//type returned -
+//(one method returns int, the other returns a float)
+
+int changeDate(float Year) ;  
+int changeDate(int Year); 
+
+ANS:
+
+//also a valid case of overloading, since the   
+//parameters are of different types:    
+
+
+8. Write an Java method "digDeep" that given an String value "r", a Fun String "f" whith a method 
+    "String invoke(String input)", and an initial String arugment "a" for it, it keeps invoking 
+    (f (... (f (f a))) until the result of function is equal to r. It should return how many times 
+    f's invoke had to be called. If r and a are equals initially, it should return 0. 
+    Show a sample call to this method.
+
+ANS.
+
+interface Fun {
+    String invoke(String input);
+}
+
+class DigDeep {
+    int digDeep(String r, Fun f, String a) {
+        return digDeepH(r, f, a, 0);
+    }
+    int digDeepH(String r, Fun f, String a, int count) {
+    	return r.equals(a) ? count :
+	    digDeepH(r, f, f.invoke(a), count + 1);	   
+    }
+    public static void main(String[] args) {
+        System.out.println(new DigDeep().digDeep("echoechoechoechoechoechoechoecho", new Fun() { public String invoke(String input) { return input + input; } }, "echo"));
+    }
+}
+
+9. Use a user-defined type declaration to build a full deck of 52 cards
+     + 4 suits (hearts, clubs, diamonds,  spades)
+     + 13 ranks (2 .. 10, J, Q, K, A)
+
+ANS.
+ 
+     type suit = Hearts | Clubs | Diamonds | Spades
+     type rank = Num of int | Jack | Queen | King | Ace
+     type card = Card of rank * suit
+     let suits = [Hearts; Clubs; Diamonds; Spades]
+     let ranks = [Num 2; Num 3; Num 4; Num 5; Num 6; Num 7; Num 8; Num 9; Num 10; Jack; Queen; King; Ace]
+     let rec cross_product a b = 
+       let rec pair e l =
+         match l with 
+	   [] -> []
+         | x::y -> (e, x)::(pair e y) in     
+       match a with
+	 [] -> []
+       | x::y -> (pair x b)@(cross_product y b)
+     let rec pairs_to_cards ps =
+        match ps with
+          [] -> []
+        | (a,b)::tail -> Card(a,b)::(pairs_to_cards tail)
+     let deck = pairs_to_cards (cross_product ranks suits)
+
+

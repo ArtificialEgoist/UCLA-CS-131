@@ -1,0 +1,79 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Final: closed book, closed notes, cumulative; some short answers, some multiple choice
+
+Concepts:
+*Ocaml
+	-recursion, higher-order functions, datatypes, pattern matching, modules, exceptions
+	
+	-static vs. dynamic scoping
+	-static vs. dynamic typechecking
+	-static type inference
+	-parametric polymorphism vs. static overloading
+	-interface vs. implementation
+	
+*Java
+	-inheritance, subtyping, dynamic dispatch (these are different)
+		-inheritance is about sharing code
+			-a property of how something is implemented
+		-subtyping is about interface compatibility
+			-if S is a subtype of T, then objects of type S can be safely used wherever objects of type T are expected (not actually getting code)
+		-dynamic dispatch: C o = ...; o.m(...)
+			determines which m method to invoke *dynamically* at run time, based on the run-time class of the object o
+	
+	-Java's memory model
+		-object references, aliasing
+			C c = new C();
+			C c2 = c; //c2 and c are pointers to the same object on the heap; "aliasing"; modifying object via one pointer updates the other pointer too
+			c.f++; //c2 will also increase
+			
+			class C { void m() {} }
+			class D extends C { void m() { //do something super.m(); } }
+			D d = ...;
+			d.m(); //what if we want to call C's method m? fill it in with super.m();
+	
+	-generics
+	
+	-exceptions
+	
+	-fork/join parallelism
+	
+	-MapReduce
+
+*Prolog
+	-unification, resolution
+	-build a proof tree given a program and a query
+		-how many solutions, in what order, terminate?
+		
+------------------------------------------------------------------------------------------------------------------------
+
+Review Examples:
+
+prereq(CS31,CS32). /* 1 */
+... /* 2 */
+...
+prereqInCommon(Y,Z) :- prereq(X,Y), prereq(X,Z), \+(Y=Z). /* 18 */
+
+/* A rule lets you give a name to a query */
+
+
+Proof Tree of prereqInCommon(A,B):
+
+prereqInCommon(A,B)
+	1	...		17		18
+	no			no		yes, B=A, Z=B
+						prereq(X,A), prereq(X,B), \+(A=B)
+						1						...		17		18
+						yes, X=CS31, A=CS32		yes		yes		no
+						1						2		3								...		18
+						yes, X=CS31, B=CS32		no		yes, X=CS31, B=CS35L
+						But A=B, so no					yes! A!=B a solution is found			no
+
+
+\+(CS32 = CS35L).						
+	yes
+						
+\+(CS32 = X).
+	no //and if we use this at the front, X isn't declared quite yet
+
+------------------------------------------------------------------------------------------------------------------------

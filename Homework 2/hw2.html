@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en"><head><title>Homework 2</title>
+</head>
+
+
+<body>
+
+<h1>Homework 2</h1>
+
+<h2>Due Tuesday, April 16, at 11:30pm</h2>
+<h3>Turn in your homework via the course web page as an updated version of the <tt>hw2.ml</tt>
+text file that I have provided. 
+
+<h3>Make sure the file can be successfully loaded into the OCaml interpreter
+via the <tt>#use</tt> directive; if not you get an automatic 0 for the homework!</h3>
+
+<h3>Recall the CS131 Academic Honesty Policy!  You must list whom you
+discussed the assignment with at the top of your assignment, and also what
+other resources you used.</h3>
+
+For this assignment, you will get practice using datatypes as well as higher-order functions in ML.
+In a few places below, you are required to use one of the higher-order functions from the
+<a href="http://caml.inria.fr/pub/docs/manual-ocaml/libref/List.html">List module</a> that we saw in class
+(e.g., <tt>List.map</tt> and <tt>List.fold_right</tt>), so <i>pay attention to those directives or you will get no credit for the problem</i>.
+In addition you should obey our usual style rules:
+
+<ul> <li> <i>Never</i> use imperative features like
+assignment and loops.  If you're using a construct not discussed in
+class or in the book, you're probably doing something bad!</li> <li>
+Use pattern matching instead of conditionals wherever it is possible
+to do so.</li> <li> Use local variables to avoid recomputing an
+expression that is needed multiple times in a function.</li>
+<li>Similarly, avoid code duplication.  If the same code is needed in
+multiple places, possibly with slight variations, make a helper function
+so that the code only has to be written once.</li>
+</ul>
+
+A few other tips: <ul>
+<li>Create any number of helper functions as needed.
+ It may be
+advantageous to make these functions local to the main function being
+defined, so they
+can refer to names bound in the enclosing function.  Try to find
+opportunities to make use of this feature.
+</li>
+<li> Write comments where useful to tell the
+reader what's going on.  Comments in OCaml are enclosed in <tt>(*</tt>
+and <tt>*)</tt>.  The grader should be able to easily understand what
+your code is doing.  One useful comment is to provide the type of any
+helper function that you define.</li>
+
+<li> Test your functions on several inputs, including corner cases --
+we will be doing the same.</li>
+</ul>
+
+Now on to the assignment!
+I've provided a file <tt>hw2.ml</tt> that has a comment giving the name and type of each function that you must implement.  <b>Make sure each of your functions has exactly the expected name and type; otherwise you will get no credit for it.</b>  I've also declared some datatypes that are useful in certain problems.
+
+<h3>Problem #1: Warm-Up</h3>
+
+<ol type="a"> <li>In class we saw how to implement two common higher-order functions on lists,
+  <tt>map</tt> and <tt>fold_right</tt>.
+For this problem, implement <tt>fold_left</tt>.
+  <i>Do not use any functions from the <tt>List</tt> module or other modules.</i></li>
+
+<p><li>On the last homework assignment you implemented a <tt>flatten</tt> function on lists of lists.  Implement it again, but now <i>the entire implementation should be a single call to a higher-order function from the <tt>List</tt> module that we saw in class</i>.</li>
+
+<p><li>Implement a function <tt>pipe</tt>, which acts similar to the Unix pipe operator: it takes a list of functions 
+<tt>[f1;...;fn]</tt> and returns a function <tt>f</tt>
+such that for any <tt>x</tt>, the invocation <tt>f x</tt> is equivalent to
+<tt>fn(...(f2(f1 x)))</tt>.
+<i>The entire implementation should be a single call to a higher-order function from the <tt>List</tt> module that we saw in class.</i>
+Some examples:
+</p>
+<blockquote>
+  <p><tt>
+    # pipe [] 3;;</font><br>
+    - :  int =  3 <br>
+    # pipe [(fun x-&gt; 2*x);(fun x -&gt; x + 3)] 3 ;;</font><br>
+    - :  int =  9 <br>
+    # pipe [(fun x -&gt; x + 3);(fun x-&gt; 2*x)] 3;;</font><br>
+    - :  int =  12<br>
+ </tt></p>
+</blockquote></li>
+
+<p><li> In class we saw the advantages of currying.  For example, a
+function of type <tt>int -> string -> bool</tt> conceptually takes two
+arguments, but because they are curried it is possible to pass just an
+integer and get back a function of type <tt>string -> bool</tt>.
+However, it is not possible to pass in a string and get back a
+function of type <tt>int -> bool</tt> because the string is the "second" argument.
+
+<p>Fortunately there is an easy fix.  Define a function <tt>swap</tt>
+of type <tt>('a -> 'b -> 'c) -> ('b -> 'a -> 'c)</tt> that swaps the order of two arguments to a curried function.
+For example, suppose <tt>f</tt> has type <tt>int -> string ->
+bool</tt>, and let <tt>g</tt> be <tt>swap f</tt>.  Then <tt>g "hello"</tt> returns a function of type
+<tt>int -> bool</tt>, and more generally, <tt>g x y</tt> has the same behavior as <tt>f y x</tt>.</li>
+</ol>
+
+<h3>Problem #2: Dictionaries</h3>
+
+A <i>dictionary</i> (sometimes also called a <i>map</i>) is a mapping from keys to values, supporting two main operations:  <tt>put</tt>, which adds a new key-value pair to the dictionary, and <tt>get</tt>, which looks up the value associated with a given key in the dictionary.  If the given key is already mapped to some value in the dictionary, then <tt>put</tt> should (conceptually)
+replace the old key-value pair with the new one.
+
+<p>In this problem we'll explore three different implementations of a dictionary data structure.
+
+<ol type="a">
+ <li> Our first implementation of a dictionary is as an <i>association list</i>, i.e. a list of pairs.  We actually saw this briefly in class and we implemented the <tt>get</tt> function (but called it <tt>lookup</tt>).  Implement <tt>put1</tt> and <tt>get1</tt> for association lists (we use the suffix <tt>1</tt> to distinguish from other implementations below).
+  To get the effect of replacing old entries for a key, 
+  <tt>put1</tt> should simply add new entries to the front of the list, and accordingly <tt>get1</tt> should
+  return the leftmost value whose associated key matches the given key.
+<i>The entire implementation of <tt>get1</tt>
+  should be a single call to a higher-order function from the <tt>List</tt> module that we saw in class.</i></li>
+
+<p><li> A different way to implement a dictionary is by declaring a new datatype:  
+
+<blockquote>
+  <p><tt>type dict2 = Empty | Entry of string * int * dict2
+ </tt></p>
+</blockquote>
+
+For example, the dictionary that maps <tt>"hello"</tt> to <tt>5</tt> and has no other entries would be represented as the value <tt>Entry("hello", 5, Empty)</tt>.
+For simplicity we have hard-coded the type of keys to be <tt>string</tt> and the type of values to be <tt>int</tt>, but we could have instead declared <tt>dict2</tt>
+to be <i>polymorphic</i> over the key and value types.
+
+<p>Implement <tt>put2</tt> and <tt>get2</tt> for <tt>dict2</tt>.  As above, new entries should be added to the front of the dictionary, and <tt>get2</tt> should return the leftmost match.</li>
+
+<p><li> Yet another way to represent a dictionary is as a function from keys to values.  We can declare a new datatype that uses this alternate representation (again specialized for simplicity to the case when keys are strings and values are integers):
+
+<blockquote>
+  <p><tt>type dict3 = Dict3 of (string -> int option)
+ </tt></p>
+</blockquote>
+
+In this representation, a key that the underlying function maps to <tt>None</tt> is considered to not be in the dictionary, and a key that the underlying function maps to <tt>Some v</tt> is considered to have associated value <tt>v</tt>.  For instance, this dictionary maps <tt>"hello"</tt> to
+<tt>5</tt> and has no other entries:
+
+<blockquote>
+  <p><tt>Dict3 (function s -> match s with "hello" -> Some 5 | _ -> None)
+ </tt></p>
+</blockquote>
+
+
+One advantage of this representation over the two dictionary implementations above is that we can
+represent infinite-size dictionaries.  For instance, the following dictionary maps all strings
+to their length (using the <tt>String.length</tt> function):
+
+<blockquote>
+  <p><tt>Dict3 (function s -> Some (String.length s))
+ </tt></p>
+</blockquote>
+
+Implement <tt>put3</tt> and <tt>get3</tt> for <tt>dict3</tt>.</li>
+
+</ol>
+
+<h3>Problem #3: Calculators</h3>
+
+<ol type="a">
+<p> <li> Consider a simple calculator that accepts arithmetic expressions and computes their values.  An implementation of the calculator might
+  <i>parse</i> the user input into a nice tree structure like the following:
+
+<p><tt>type op = Plus | Minus | Times | Divide</tt><br>
+<tt>type aexp = Num of float | BinOp of aexp * op * aexp</tt>
+
+<p> For example, the expression <tt>(1.0 + 2.0) * 3.0</tt> would be
+parsed into the 
+value <tt>BinOp(BinOp(Num 1.0, Plus, Num 2.0), Times, Num 3.0)</tt>.
+
+<p>Write a function <tt>evalAExp</tt> of type <tt>aexp -> float</tt>
+that evaluates a given arithmetic expression.  For example, the result of evaluating our expression above should be <tt>9.0</tt> (which OCaml prints as just <tt>9.</tt> without the trailing zero).  You do not need to handle division-by-zero errors.
+</li>
+
+<p><li> Some HP calculators (as well as the <tt>dc</tt> calculator at the terminal in Linux and Mac OS X)
+and some programming languages (e.g., the language of the Java virtual machine, which Java programs compile to) evaluate expressions using a stack.  An arithmetic computation is expressed as a sequence
+(i.e., a list) of stack operations, each of which is represented as a value of the following datatype:
+
+<p><tt>type sopn = Push of float | Swap | Calculate of op</tt>
+
+<p>The operations are defined to manipulate a stack of floating point
+numbers (which we'll represent as a <tt>float list</tt>).  The
+operation <tt>Push n</tt> pushes the number <tt>n</tt> onto the stack
+(thereby increasing the stack size by 1).  The operation <tt>Swap</tt> pops the top two numbers off the stack and pushes them back
+on the stack in reverse order (thereby keeping the stack the same size).  The operation <tt>Calculate
+op</tt> pops the top two numbers <tt>n1</tt> and <tt>n2</tt> off the stack and pushes the result
+of evaluating <tt>(n2 op n1)</tt> onto the stack (thereby decreasing the stack size by 1).  <i>Note that the first operand in the computation is the second value popped off the stack, and the second operand is the first value popped off the stack.  This makes a difference for non-commutative operations like subtraction and division.  This behavior makes sense since it corresponds with the order in which the operands were originally computed (and pushed onto the stack).</i>
+
+<p>For example, the arithmetic expression <tt>(1.0 + 2.0) * 3.0</tt>
+can be represented by the sequence of stack operations <tt>[Push 1.0;
+Push 2.0; Calculate Plus; Push 3.0; Calculate Times]</tt>.  This style
+of inputting the two operands before the operator is known as Reverse Polish notation (RPN).
+
+<p>Write a function <tt>evalRPN</tt> of type <tt>sopn list -> float</tt> that evaluates a sequence of stack operations.
+For example, <tt>evalRPN([Push 1.0; Push 2.0; Calculate Plus; Push 3.0; Calculate Times])</tt> should evaluate to <tt>9.0</tt>.  You will
+find it useful to do most of the work in a helper function of type <tt>sopn list -> float list -> float</tt>, where the additional <tt>float list</tt> argument is used as a stack. 
+Once all of the stack operations have been processed, the number at the top of the stack will be the
+final result value to return.
+Don't worry about the possibility of
+stack underflow, which occurs when the stack has too few elements to perform the next operation. (But note how the ML typechecker properly warns about this possibility!)
+</li>
+
+<p>
+<li>
+Write a function <tt>toRPN</tt> of type <tt>aexp -> sopn list</tt> that converts
+an arithmetic expression into a sequence of stack operations which represents the same computation.
+There should be a <tt>Calculate Plus</tt> stack operation
+for every <tt>Plus</tt> in the input, and so on; evaluating the input expression to a
+number <tt>n</tt> and then returning <tt>[Push n]</tt> will get you no credit.
+You should not need to ever use the <tt>Swap</tt> operation.
+<i>Hint: This function corresponds exactly to a postorder traversal of the input expression
+when viewed as a tree.</i>
+</li>
+
+<p><li>Write a function <tt>fromRPN</tt> of type
+  <tt>sopn list -> aexp</tt> that converts a list of stack operations
+  into an arithmetic expression that represents the same computation.  Again, simply evaluating the input expression to a number will get you no credit.  You may assume that the
+  given sequence of stack commands does in fact correspond to a single
+  arithmetic expression.  <i>Hint: This function is not too different from <tt>evalRPN</tt> above.  Like that one, here you will also want
+to define a helper function that uses a stack, but instead of the stack holding numbers, now it will hold values of type <tt>aexp</tt>.</i>
+
+</ol>
+
+</body></html>

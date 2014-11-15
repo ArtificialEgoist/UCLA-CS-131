@@ -1,0 +1,227 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Interfaces in OCaml: module types (or signatures)
+
+example: set of strings
+
+module type SET = sig //OCaml
+	type t
+	val emptyset: t
+	val contains: string -> t-> bool
+	val add: string -> t -> t
+end
+
+------------------------------------------------------------------------------------------------------------------------
+
+Interfaces in Java: interface
+
+Implementations in OCaml: module
+
+Implementations in Java: class
+
+------------------------------------------------------------------------------------------------------------------------
+
+//an interface for a set of strings
+interface Set {
+	boolean contains(String s);
+	void add(String s);
+}
+
+//Compiling : javac 4-29-13.java
+
+/* Differences from an OCaml signature:
+	-an interface always declares a single new type
+	-each method implicitly takes an argument of that new type as the *receiver* parameter
+		Set s = ...;
+		s.contains("hello");
+	-we don't have emptyset here
+		-each class that has the type Set will define one or more "constructors"
+*/
+
+import java.util.*;
+
+class ListSet implements Set { //since we implement Set, we have to provide methods declared (contains, add)
+	List<String> elems;
+	
+	ListSet() { elems = new LinkedList<String>(); }
+	
+	public boolean contains(String s) {
+		return elems.contains(s);
+	}
+	
+	public void add(String s) {
+		if(!contains(s)) //same as !(this.contains(s))
+			elems.add(s);
+	}
+	
+}
+
+class ArraySet implements Set {
+	String[] elems;
+	int size;
+	
+	ArraySet() {
+		this.elems = new String[10];
+		this.size = 0;
+	}
+	ArraySet(int n) { elems = new String[n]; size=0;}
+	
+	public boolean contains(String s) {
+		for(int i=0; i<size; i++) //elems.length
+			if(elems[i].equals(s)) //== checks for pointer equality
+				return true;
+		return false;
+	}
+	
+	public void add(String s) {
+		if(this.contains(s))
+			return;
+			
+		if(size==elems.length) {
+			String[] newArr = new String[2*elems.length]; /* resize the array */
+			for(int i=0; i<size; i++)
+				newArr[i] = elems[i];
+			elems = newArr; //no need to (and can't) delete, since Java is a memory-safe language
+			//automatic garbage collection
+		}
+	
+		elems[size]=s; /* add s to array */
+		size++;
+			
+	}
+	
+}
+
+class Client {
+	void m(Set s) {
+		if s.contains("hello"))
+			s.add("bye");
+	}
+	
+	public static void main(String[] args) {
+		Client c = new Client();
+		Set s = new ListSet();
+		
+		s.add("hello");
+		System.out.println(s.contains("bye")); //false
+		c.m(s); //adds "bye"
+		System.out.println(s.contains("bye")); //true
+	}
+}
+
+------------------------------------------------------------------------------------------------------------------------
+
+//Polymorphism in Java -- two kinds
+
+/* 1. Parametric polymorphism aka Generic polymorphism
+		-just like in Ocaml
+
+*/
+
+//E is a type variable, like 'a in OCaml
+interface PolySet<E> {
+	boolean contains (E e);
+	void add(E e);
+	E get();
+}
+
+
+//T is a new type variable declared here
+class PolyListSet<T> implements PolySet<T> {
+	List<T> elems;
+	
+	PolyListSet() { elems = new LinkedList<T>(); }
+	
+	public boolean contains(T t) {
+		return elems.contains(t);
+	}
+	
+	public void add(T t) {
+		if(!contains(t)) //same as !(this.contains(s))
+			elems.add(t);
+	}
+	
+	public T get() {
+		return elems.get(0);
+	}
+	
+}
+
+class PolyClient {
+	void m(PolySet<String> s) {
+		if s.contains("hello"))
+			s.add("bye");
+	}
+	
+	public static void main(String[] args) {
+		PolyClient c = new PolyClient();
+		PolySet<String> s = new PolySet<String>();
+		
+		s.add("hello");
+		System.out.println(s.contains("bye")); //false
+		c.m(s); //adds "bye"
+		System.out.println(s.contains("bye")); //true
+	}
+}
+
+/*
+	Subtype polymorphism
+		-not in OCaml
+*/
+
+//declaring RemovableSet to be a "subtype" of Set; any objects with RemovableSet can be considered having Set
+interface RemovableSet extends Set {
+	void remove(String s);
+}
+
+/* key principle: subtype substitutability
+
+	if S is a subtype of T
+	then an object of type S can be used wherever an object of type T is expected
+
+*/
+
+/*
+class RemovableListSet implements RemovableSet {...}
+*/
+
+class AnotherClient {
+	void union(Set s1, Set s2) { }
+	
+	void m(RemovableSet rs) {
+		rs.add("hello");
+		rs.remove("bye");
+		Set s = rs;
+		s.add("hello");
+		s.remove("bye"); //static type error! Set does not have the remove method
+	}
+}
+
+//every type is a subtype of Object
+interface ObjectSet {
+	boolean contains(Object o);
+	void add(Object o);
+	Object get();
+}
+
+/* Why do we need PolySet<E> if we can already write ObjectSet?
+
+	1. PolySet<String> is guaranteed to only have strings in it
+		
+		ObjectSet can have any kind of element in it
+			-integers, strings, lists, shapes, etc.
+	
+	2. Consider getting an element out of the  set.
+*/
+
+class Client2 {
+
+	void m(PolySet<String> s1, ObjectSet s2) {
+		s1.add("hello");
+		String elem = s1.get();
+		
+		s2.add("hello");
+		//String elem2 = s2.get();	//error! incompatible types; there's no guarantee get() returns String
+		String elem2 = (String) s2.get();
+	}
+}

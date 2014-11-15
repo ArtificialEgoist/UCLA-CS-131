@@ -1,0 +1,8 @@
+typeInfer(function(x, funCall(var(x), intconst(34))), [], T).
+//should be T = arrow(arrow(int,A),A)
+
+typeInfer(function(var(x),intconst(1)),[],T).
+//should be T = arrow(A,int)
+
+
+

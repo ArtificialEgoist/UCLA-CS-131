@@ -1,0 +1,250 @@
+
+Write a function to compute the nth Fibonacci number, where the 0th Fibonacci number is 0, the 1st is 1, and the nth for n > 1 is the sum of the (n-1)st and (n-2)nd Fibonacci numbers.
+
+
+Write a function clone of type 'a * int -> 'a list. The function takes an item e and a nonnegative integer n and returns a list containing n copies of e. For example, clone("hi", 4) returns ["hi"; "hi"; "hi"; "hi"].
+
+
+The naive implementation of fib above is wildly inefficient, because it does a ton of redundant computation. We can make things much more efficient by memoizing the results of recursive calls. Write a function fibsFrom that takes a nonnegative number n and returns a list of the first n Fibonacci numbers in reverse order (i.e., from the nth to the 0th). Recall that the 0th Fibonacci number is 0, the 1st is 1, and the nth for n > 1 is the sum of the (n-1)st and (n-2)nd Fibonacci numbers. You should implement fibsFrom without writing any helper functions. A call like (fibsFrom 50) should be noticeably faster than (fib 50).
+
+
+Write a function rev that reverses the elements in a list.
+
+Example:
+# rev [1;2;3];;
+- : int list = [3; 2; 1]
+# rev ['z'];;
+- : char list = ['z']
+
+
+The naive algorithm for reversing a list takes time that is quadratic in the size of the argument list. In this problem, you will implement a more efficient algorithm for reversing a list that only takes linear time. Call this function fastRev. The key to fastRev is that it builds the reversed list as we recurse over the input list, rather than as we return from each recursive call. This is similar to how an iterative version of list reversal, as implemented in a language like C, would naturally work.
+
+To get the right behavior, your fastRev function should use a local helper function revHelper to do most of the work. The helper function should take two arguments: (1) the suffix of the input list that remains to be reversed; (2) the reversal of the first part of the input list. The helper function should return the complete reversed list. Therefore the reversal of an input list l can be performed via the invocation revHelper(l, []). I've already provided this setup for you, so all you have to do is provide the implementation of revHelper (which is defined as a nested function within fastRev) and invoke it as listed above. The call (fastRev (clone(0, 10000))) should be noticeably faster than (rev (clone(0, 10000))).
+
+
+Write a function tails of type 'a list -> 'a list list that takes a list and returns a list of lists containing the original list along with all tails of the list, from longest to shortest. For example, tails [1;2;3] is [[1;2;3];[2;3];[3];[]].
+
+
+Write a function split of type 'a list -> 'a list * 'a list that separates out those elements of the given list in odd positions (that is, the first, third, fifth, etc.) from those in even positions (that is, the second, fourth, etc.). For example, split [1;2;3;4;5] is ([1;3;5], [2;4]).
+
+
+Write a recursive function count: 'a -> 'a list -> int to get the number of occurrences of an element in a list.
+
+
+Write a function to return the last element of a list. To deal with the case when the list is empty, the function should return a value of the built-in option type, defined as follows:
+
+type 'a option = None | Some of 'a
+
+Example:
+# last [];;
+- : 'a option = None
+# last [1;3;2];;
+- : int option = Some 2
+
+
+Flatten a list of lists.
+
+Example:
+# flatten [[2]];;
+- : int list = [2]
+# flatten [[2]; []; [3;2]];;
+- : int list = [2; 3; 2]
+
+
+Eliminate consecutive duplicates of list elements. If a list contains repeated elements they should be replaced with a single copy of the element. The order of the elements should not be changed. You should be able to implement the function without defining any helper functions.
+
+Example:
+# rmDups [];;
+- : 'a list = []
+# rmDups [1];;
+- : int list = [1]
+# rmDups [1;2];;
+- : int list = [1; 2]
+# rmDups [1;1;2];;
+- : int list = [1; 2]
+# rmDups [1;2;2];;
+- : int list = [1; 2]
+# rmDups [1;2;2;3;2;1];;
+- : int list = [1; 2; 3; 2; 1]
+
+
+Run-length encoding of a list. Implement the so-called run-length encoding data compression method. Consecutive duplicates of elements are encoded as lists (N, E) where N is the number of duplicates of the element E. You should be able to implement the function without defining any helper functions.
+
+Example:
+# encode [];;
+- : (int * 'a) list = []
+# encode ["a"];;
+- : (int * string) list = [(1, "a")]
+# encode ["a";"a"];;
+- : (int * string) list = [(2, "a")]
+# encode ["a";"b";"b"];;
+- : (int * string) list = [(1, "a"); (2, "b")]
+# encode ["a";"b";"b";"a";"a"];;
+- : (int * string) list = [(1, "a"); (2, "b"); (2, "a")]
+
+
+Write a function drop that removes every kth element from a list. You may assume that k >= 1.
+
+Example:
+# drop [] 1;;
+- : 'a list = []
+# drop [1] 1;;
+- : int list = []
+# drop [1;2] 1;;
+- : int list = []
+# drop [1;2] 2;;
+- : int list = [1]
+# drop [1;2;3] 2;;
+- : int list = [1; 3]
+# drop [1;2;3;4] 2;;
+- : int list = [1; 3]
+# drop [1] 2;;
+- : int list = [1]
+
+
+Sort a list of integers from least to greatest.
+
+Example:
+# sort [];;
+- : 'a list = []
+# sort [2];;
+- : int list = [2]
+# sort [2;1];;
+- : int list = [1; 2]
+# sort [2;4;3;2;1];;
+- : int list = [1; 2; 2; 3; 4]
+
+
+Convert a (decimal) integer into binary by encoding it as a list of integers. You may use the builtin modulo operator mod : int * int -> int.
+
+Example:
+# dec2bin 0;;
+- : int list = [0]
+# dec2bin 1;;
+- : int list = [1]
+# dec2bin 2;;
+- : int list = [1; 0]
+# dec2bin 3;;
+- : int list = [1; 1]
+# dec2bin 4;;
+- : int list = [1; 0; 0]
+# dec2bin 15;;
+- : int list = [1; 1; 1; 1]
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+let rec fib (n:int) : int =
+    match n with
+    	0 -> 0
+        | 1 -> 1
+        | _ -> fib(n-1)+fib(n-2);;
+
+let rec clone ((e, n) : 'a * int) : 'a list =
+    match n with
+    	0 -> []
+        | 1 -> [e]
+        | _ -> e::clone(e, n-1);;
+
+let rec fibsFrom (n:int) : int list =
+    match n with
+    	0 -> [0]
+        | 1 -> [1;0]
+        | _ -> 
+        	let z=fibsFrom(n-1) in
+        	match z with
+            	x1::x2::xs -> [x1+x2]@z;;
+
+let rec rev (l: 'a list) : 'a list =
+    match l with
+    	[] -> l
+        | x::xs -> rev(xs)@[x];;
+
+let fastRev (l : 'a list) : 'a list =
+    let rec revHelper (remain, sofar) =
+		match remain with
+        	[] -> sofar
+            | x::xs -> revHelper(xs, x::sofar)
+in revHelper(l, []) ;;
+
+let rec tails (l : 'a list) : 'a list list =
+     match l with
+     	[] -> [[]]
+        | x::xs -> [l]@tails(xs);;
+
+let rec split (l : 'a list) : 'a list * 'a list =
+	let rec everyOther(z) =
+      	match z with
+        	[] -> []
+            | z1::[] -> z1::[]
+            | z1::z2::z3 -> z1::everyOther(z3)
+in match l with
+    	[] -> ([],[])
+        | x::[] -> ([x],[])
+        | x1::x2 -> (everyOther(l),everyOther(x2));;
+
+let rec count (v: 'a) (l: 'a list) : int =
+    match l with
+    	[] -> 0
+        | x::xs ->
+        	if x=v then 1 + count(v)(xs) else count(v)(xs);;
+
+let rec last (l: 'a list) : 'a option =
+    match l with
+    	[] -> None
+        | x::[] -> Some x
+        | x::xs -> last(xs) ;;
+
+let rec flatten (l: 'a list list) : 'a list =
+    match l with
+    	[] -> []
+        | x::[[]] -> x
+        | x::xs -> x@flatten(xs);;
+
+let rec rmDups (l: 'a list) : 'a list = 
+    match l with
+    	[] -> []
+        | x::[] -> [x]
+        | x::xs ->
+        	let m = rmDups(xs) in
+            	match m with
+                	z::zs -> if x=z then m else x::m ;;
+
+let rec encode (l: 'a list) : (int * 'a) list =
+    match l with
+    	[] -> []
+        | x::xs -> 
+        	let z = encode(xs) in
+            	match z with
+                	[] -> [(1,x)]
+                	| (p,q)::r ->
+                    	if x=q then [(p+1,q)]@r
+                        else (1,x)::z ;;
+
+let drop (l: 'a list) (k: int) : 'a list = 
+	let rec helpDrop (x)(y) =
+    	match x with
+        	[] -> []
+            | x::xs -> 
+            	(match y with
+                	1 -> helpDrop(xs)(k)
+            		| _ -> x::helpDrop(xs)(y-1))
+in helpDrop(l)(k) ;;
+
+let rec sort (l: int list) : int list =
+	let rec place (z: int) (l2: int list) =
+    	match l2 with
+        	[] -> [z]
+            | x1::x2 ->
+            	if  z<=x1 then z::x1::x2
+                else x1::place(z)(x2)
+in match l with
+    	[] -> []
+        | x::[] -> [x]
+        | x::xs -> place(x)(sort(xs));;
+
+let rec dec2bin (n: int) : int list = 
+    if n=0 then [0] else
+    	if n=1 then [1] else
+    match (n mod 2) with
+    	0 -> dec2bin(n/2)@[0]
+        | _ -> dec2bin(n/2)@[1] ;;

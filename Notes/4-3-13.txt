@@ -1,0 +1,159 @@
+Continuing functions from last time...
+
+------------------------------------------------------------------------------------------------------------------------
+
+Function that doubles some number x:
+	let double x = x*2;;
+
+	double 45;;
+		int = 90
+
+	let double (x:int) = x*2;;
+
+To determine length of a list:
+	let rec length l =
+		match l with
+		[] -> 0
+		| _::xs -> 1+length(xs);;
+
+	length [1;2;3];;			This function has 'a list -> int (meaning we can pass in list of any type)
+		int = 3
+	length[true;false;true]
+		int = 3
+
+To perform a swap on a tuple:
+	let swap (x,y) = (y,x);;		'a * 'b -> 'b * 'a
+
+To make a "switch" between list and tuple pairs:
+	zip: 'a list * 'b list -> ('a * 'b) list
+		zip ([1;2;3], ["one";"two";"three"]) -> [(1, "one"); (2, "two"); (3, "three")]
+
+	let rec zip(l1, l2) =
+		match (l1, l2) with
+		([],_) -> []
+		| (_,[]) -> []
+		| (x::xs, y::ys) -> (x,y)::(zip (xs, ys));;
+
+To unzip:
+	unzip: ('a * 'b) list -> ('a list * 'b list)
+
+	let rec unzip(l) =
+		match l with
+		[] -> ([],[])
+		| (x,y)::xs -> 
+			match (unzip xs) with
+			(a,b)::xs -> (x::a, y::b)
+
+	let rec unzip2(l) =
+		match l with
+		[] -> ([],[])
+		| (x,y)::xs -> 
+			let (l1,l2) = (unzip xs)
+			in (x::l1, y::l2)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Datatypes in ML
+
+idea: declare a new type along with the set of possible values of that type
+
+type point = Cartesian of float * float | Polar of float * float
+
+type shape = Circle of float | Square of float | Triangle of float * float
+
+------------------------------------------------------------------------------------------------------------------------
+
+type sign = Pos | Neg | Zero			sign must be lowercase; the actual types must be uppercase
+	Pos
+	sign = Pos
+
+
+Check sign of some input n:
+	let signOf n = 
+		mtch n with
+			0 -> Zero
+			| _ -> if n>0 then Pos else Neg;;
+
+		signOf (-53);;
+			sign = Neg
+		signOf 0;;
+			sign = Zero
+
+Declaring some type point as Cartesian:
+	type point = Cartesian of float * float
+		Cartesian(3.0, 4.0);;
+			point = Cartesian(3., 4.)
+
+Using some Cartesian for matching in function Negate:
+	let negate p =
+		match p with
+			Cartesian (x,y) -> Cartesian(-x,-y)				negate: point -> point
+			| Polar(rho, theta) -> Polar(rho, theta +. 180.0)
+
+*Using 2.0 - 1.0 gives an error! Use 2.0 -. 1.0 (that is, a -. operator for floats)
+
+type intList = Empty | Node of int * intList				In this representation, [1;2;3] is Node(1, Node(2, Node(3, Empty)))
+
+let rec sumList l =
+	match l with
+		Empty ->0
+		| Node(x,xs) -> x + (sumList xs)
+
+type 'a mylist = Empty | Node of 'a * 'a mylist				Polymorphic version of the above; can have any type of element data
+
+------------------------------------------------------------------------------------------------------------------------
+
+Binary Trees
+
+type tree = Leaf | InternalNode of tree * int * tree		Left subtree, data as int, right subtree
+
+let mytree =
+	InternalNode(
+		InternalNode(Leaf, 1, Leaf),
+		2,
+		InternalNode(
+		Leaf,
+		3,
+		InternalNode(Leaf, 4, Leaf)))
+		
+let rec size t =
+	match t with
+		Leaf -> 0
+		InternalNode(t1, d, t2) ->
+			1 + (size t1) + (size t2);;
+
+let rec insert (d, t) =
+	match t with
+		Leaf -> InternalNode(Leaf, d, Leaf)
+		| InternalNode(t1, x, t2) ->
+			if d>x then
+				InternalNode(t1, x, insert(d, t2))
+			else insert(d, t1);;
+				InternalNode(insert(d, t1), x, t2)
+
+(* type 'a option = None | Some of 'a *)
+
+let rec lookup (k, map)	=						map is a list of pairs [(1, "one"); (2, "two")]
+	match map with
+		[] -> None
+		| (k1, v1)::xs -> if k=k1 then Some v1 else lookup(k, xs);;					Returns back a string option, NOT A string!
+
+match (lookup(2, [(1, "one"); (2, "two")]))
+	with
+		None -> print_string "hello"
+		| Some s -> pring_string s;;
+		
+let safeDiv(x,y) =
+	match y with
+		0 -> None
+		| _ -> Some (x/y);;
+
+		
+
+
+
+
+
+
+
+

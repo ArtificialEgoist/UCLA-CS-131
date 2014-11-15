@@ -1,0 +1,152 @@
+------------------------------------------------------------------------------------------------------------------------
+
+(* Tail Recursion *)
+
+let rec fact n = 
+	match n with
+		0 -> 1
+		| _ -> n * fact(n-1)
+	
+(*
+	[]			(fact 3)
+	[(n,3)]		n*(fact 2) ==> 6
+	[(n,2)]		n*(fact 1) ==> 2
+	[(n,1)]		n*(fact 0) ==> 1
+	[(n,0)]		1
+	
+	linear time and linear space
+	
+	int fact(int n) {
+		int res = 1;
+		for(i-2; i<=n; i++)
+			res += i;
+		}
+		return res;
+	}
+	
+	Linear time but now constant space
+		-almost more time efficient
+			-only one function call
+	
+*)
+
+(* compute factorial on the way down rather than on the way up *)
+let factIter n =
+	let rec helper n acc = (* accumulator *)
+		match n with
+			0 -> acc
+			| _ -> helper (n-1) (acc * n)
+in
+	helper n 1
+	
+(*
+
+	[]					(helper 3 1) ==> 6
+	[(n,3),(acc,1)]		(helper 2 3) ==> 6
+	[(n,2),(acc,3)]		(helper 1 6) ==> 6
+	[(n,1),(acc,6)]		(helper 0 6) ==> 6
+	[(n,0),(acc,6)]		6
+
+Key point: we've done all the computation by the time we get to the base case.
+	-it's safe to reuse a stack frame on a recursive call rather than allocating a new stack frame
+	
+*)
+
+(* A *tail call* is a function call that is the last operation done *dynamically* when a piece of code executes
+*
+*A function is *tail-recursive* if all recursive calls in the body of the function are tail calls.
+*
+*
+*)
+
+========================================
+
+(* Another example: summing a list *)
+
+let rec sumList l = 
+	match l with
+		[] -> 0
+		| x::xs -> x + (sumList xs)
+		
+let sumListIter l = 
+	let rec helper l acc = 
+		match l with
+			[] -> acc
+			| x::xs -> helper (xs) (acc+x)
+in
+	help l 0
+	
+========================================
+	
+let rec diffList l = 
+	match l with
+		[] -> 0
+		| _ -> x::xs -> x - (diffList xs)
+		
+(* diffListWrong [1;2] = 2 - (1 - 0) *)
+let diffListWrong l = 		(* Example of something that DOESN'T work; subtraction in the wrong direction *)
+	let rec helper l diff = 
+		match l with
+			[] -> diff
+			| x::xs -> helper xs (x-diff)
+in helper l 0
+	
+(* idea: reverse the list before calling helper *)
+
+let diffListRight l =
+	let rec helper l diff = 
+		match l with
+			[] -> diff
+			| x::xs -> helper xs (x-diff)
+in helper (List.rev l) 0
+	
+========================================
+
+(* 
+* Can convert any recursive function to be tail-recursive using *continuation-passing style*
+* make an explicit function (the "continuation") for all the work that has to get done after the recursive call
+*)
+
+let diffListCPS l = 
+	let rec helper l k = 
+		match l with
+			[] -> k 0
+			| x::xs -> helper xs (function res -> k(x - res))
+	in helper l (function x -> x)
+	
+(*
+	helper [1;2] (fun x -> x)
+	helper [2] (function res -> (fun x -> x) (1 - res))		//call this function f
+	helper [] (function res -> f(2 - res))
+  
+(function res -> f(2 - res)) 0
+	f(2)
+(function res -> (fun x -> x)(1 - res)) 2
+	(fun x -> x) (1-2)
+		-1
+ *)
+ 
+ type tree = Leaf | Node of tree * int * tree
+ 
+ let rec sumTree t = 
+	match t with
+		Leaf -> 0
+		| Node(t1,i,t2) -> (sumTree t1) + i + (sumTree t2)
+		
+(* one recursive call is a tail call, the other is not *)
+let sumTreeAttempt t = 
+	let rec helper t acc = 
+		match t with
+			Leaf -> acc
+			| Node(t1,i,t2) -> helper t1 (acc + i + (helper t2 0))
+in helper t 0
+
+let sumTreeTailRecursive t = 
+	let rec helper l acc = 
+		match l with
+			| [] -> acc
+			| x::xs -> 
+				(match x with
+					Leaf -> helper xs acc
+					| Node(t1,i,t2) -> helper (t1::t2::xs) (acc+i) (* xs@[t1;t2] *)
+in helper [t] 0

@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en"><head><title>Homework 5</title>
+</head>
+
+
+<body>
+
+<h1>Homework 5: Calculators and Dictionaries Revisited</h1>
+
+<h2>Due Thursday, May 16 at 11:30pm</h2>
+<h3>Turn in your homework via the course web page as an updated version of the <tt>hw5.java</tt>
+text file that I have provided.</h3> 
+
+<h3>Make sure the file can be successfully compiled with <tt>javac</tt>.  There should be <i>no compilation errors or warnings</i>;
+if not you get an automatic 0 for the homework!</h3>
+
+<h3>Recall the CS131 Academic Honesty Policy!  You must list whom you
+discussed the assignment with at the top of your assignment, and also what
+other resources you used.</h3>
+
+<p>For this assignment we will revisit the calculator and dictionaries we saw on Homework 2, in order to
+concretely compare the functional style we saw in OCaml with the object-oriented style of Java.
+As usual, good style
+matters.  <b>Here are the rules:</b>
+ <ul>
+   <li><b>Do not modify the names of any types, classes, instance variables, and methods that we have provided in <tt>hw5.java</tt>.  We are relying on them for testing purposes; your code will get no credit in cases where the test script can't find what it's looking for.</b>
+ <li>Use interfaces as types
+and classes as their implementations, rarely if ever using a class
+directly as a type.</li>
+ <li><i>Never</i> use type-unsafe features
+of Java, like casts and the <tt>instanceof</tt> expression.  If you need
+   to ever figure out the class of some object, then your design is not as
+   object-oriented as it should be.</li>
+<li>Always compare objects with their <tt>equals</tt> method rather than with the <tt>==</tt> operator.
+<li>You may use any number of helper methods that you require.  Make those
+  <tt>protected</tt> or <tt>private</tt> as you see fit.
+</ul>
+
+A few other tips: <ul>
+  <li>You will find the <a href="http://docs.oracle.com/javase/7/docs/api">Java API Documentation</a> useful to
+  understand how various data structures from the standard library work.
+<li>Since we are now in an imperative language, you can make use of side effects (e.g., updating a variable's value).  Feel free to do this when it feels natural to you, as long as your code works as intended.
+</li>
+<li> Write comments where useful to tell the
+reader what's going on.</li>
+
+<li> Test your functions on several inputs, including corner cases --
+we will be doing the same.</li>
+</ul>
+
+Now on to the assignment!
+
+
+<h3>Problem #1: Calculators</h3>
+
+<ol type="a">
+<p> <li> Recall the OCaml type <tt>aexp</tt> of calculator expressions from Homework 2:
+
+<p><tt>type op = Plus | Minus | Times | Divide</tt><br>
+<tt>type aexp = Num of float | BinOp of aexp * op * aexp</tt>
+
+<p> File <tt>hw5.java</tt> declares an interface <tt>AExp</tt> as the
+  Java version of this type.  Uncomment the <tt>eval</tt> function in
+  <tt>AExp</tt> and define two classes <tt>Num</tt> and <tt>BinOp</tt>
+  that implement <tt>AExp</tt>.  The <tt>eval</tt> method should
+  behave just like the <tt>evalAExp</tt> function from Homework 2,
+  except here we're using <tt>double</tt>s instead of <tt>float</tt>s.
+  I've defined an <i>enum</i>, which in Java is essentially a class
+  with a finite number of instances (in this case, named
+  <tt>PLUS</tt>, <tt>MINUS</tt>, etc.), to represent the <tt>op</tt>
+  type.  I've also provided <tt>calculate</tt> methods for these
+  objects, which you should find useful.
+
+  <p>Uncomment the first test case in
+  <tt>CalcTest.main</tt> for an example of what you should support,
+  and add more test cases to gain confidence in your code.</li>
+
+<p><li> In Homework 2 we also saw the OCaml type <tt>sopn</tt> of stack operations:
+
+<p><tt>type sopn = Push of float | Swap | Calculate of op</tt>
+
+<p>This type is represented by the <tt>Sopn</tt> interface in
+<tt>hw5.java</tt>.  The class <tt>RPNExp</tt> represents a list of
+<tt>Sopn</tt> instructions.  Uncomment its <tt>eval</tt> method and
+implement it; the method should behave like <tt>evalRPN</tt> from Homework 2.
+  Implementing the method will require you to declare three classes
+that implement the <tt>Sopn</tt> interface.  Feel free to add whatever methods seem useful to the
+  <tt>Sopn</tt> interface.
+  See the second test case in <tt>CalcTest</tt> for an example of what your code should do.
+  <i>If implemented properly, you will not need to use <tt>instanceof</tt> tests or casts.</i>
+  You will find the Java <tt>List</tt> type and its implementations as well as the Java <tt>Stack</tt>
+  class useful.
+
+  <p>Aside from ordinary <tt>for</tt> and <tt>while</tt> loops, Java has a special "for-each" loop for iterating over arrays and other collections.  Check out <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/language/foreach.html">this page</a> for an example with lists.  Use this loop instead of a regular <tt>for</tt> or <tt>while</tt> loop whenever possible.
+  </li>
+
+<p>
+<li>Uncomment the method <tt>toRPN</tt> in <tt>AExp</tt> and implement it; the method should have the same behavior
+  as <tt>toRPN</tt> in Homework 2.  Uncomment the third test case in <tt>CalcTest</tt>.  You may find it useful to define a <tt>toString()</tt> method in each class implementing <tt>AExp</tt> for testing purposes.  For instance, a reasonable output of the given test case is <tt>[Push 1.0, Push 2.0, Calculate PLUS, Push 3.0, Calculate TIMES]</tt>.  (In Java, the <tt>+</tt> operator for string concatenation is highly overloaded, and in particular an invocation
+  <tt>"hi" + o</tt> for any object <tt>o</tt> is equivalent to <tt>"hi" + o.toString()</tt>.  Java lists already have a well-defined <tt>toString()</tt> method that recursively convert each element to a string.)
+</li>
+
+
+<p><li>The same expression can be computed several ways in the
+	    stack machine, because for each subexpression, you can
+	    choose to evaluate the left side first or the right side
+	    first.  (Because subtraction and division are not commutative,
+	    evaluating the right side first and then the left will require a
+	    <tt>Swap</tt> to fix things up.)
+
+	    <p>For example, 1.0 - (2.0 + 3.0) can be represented (using OCaml syntax for simplicity) either by 
+
+	      <p><tt>[Push 1.0; Push 2.0; Push 3.0; Calculate Plus; Calculate Minus]</tt>
+
+		<p> or by
+
+   <p><tt>[Push 2.0; Push 3.0; Calculate Plus; Push 1.0; Swap; Calculate Minus]</tt>
+
+     <p>The first list of commands requires a stack that can hold at least
+       three numbers at once, whereas the second list never requires more than
+       two numbers on the stack at any one time.
+
+       <p>Uncomment the method <tt>toRPNopt</tt> in <tt>AExp</tt> and implement it.
+          The function returns a pair containing (1) an optimal sequence of commands
+	 to evaluate the given arithmetic expression; and (2) the maximum
+	 size of the stack necessary for evaluating this sequence of commands.
+	 Optimal here means requiring the smallest possible <i>maximum</i>
+	 number of values on the stack at once during evaluation.  I've provided a generic <tt>Pair</tt> class
+         for your use, since unlike in OCaml, tuples are not built in to Java.
+
+	 <p><tt>toRPNopt</tt> can be computed recursively, using the
+	   optimal command sequences for the two operands and the
+	   stack sizes they each require.  You can decide which side
+	   (left or right) to evaluate first just by looking at the
+	   stack sizes each requires, without looking at their
+	   particular command sequences.  By default you should evaluate the left operand first,
+           as with <tt>toRPN</tt>.  However, you should instead evaluate the right
+	   operand first if it will reduce the maximum stack size required.
+           Also, in that case don't forget to insert a
+	   <tt>Swap</tt> command if the operation being computed is non-commutative.
+           Uncomment the fourth test case in <tt>CalcTest</tt> for an example.</li> </ol>
+
+<h3>Problem #2: Dictionaries</h3>
+
+The interface <tt>Dict</tt> in <tt>hw5.java</tt> represents the type of a dictionary, parameterized by the types for
+keys and values.  Note that the dictionary is updated in place, as is typical for Java:  the <tt>put</tt>
+method has a <tt>void</tt> return type and simply mutates the data structure rather than returning a new one.  The <tt>get</tt> method should throw the declared <tt>NotFoundException</tt> if the given key is not in the dictionary.
+
+<ol type="a">
+<li> Recall our OCaml type <tt>dict2</tt> from Homework 2, which implements dictionaries as a linked list of entries:
+
+<blockquote>
+  <p><tt>type dict2 = Empty | Entry of string * int * dict2
+ </tt></p>
+</blockquote>
+
+The class <tt>DictImpl2</tt> in <tt>hw5.java</tt> is the analogous
+implementation for Java (but generalized to be polymorphic over the types of keys and values).
+  It contains a field of type <tt>Node</tt>
+which represents the root of a linked list of entries.  Right now
+<tt>DictImpl2</tt>'s constructor and methods are broken; you need to
+fix them.  This will also involve adding methods to <tt>Node</tt> and to the two classes <tt>Empty</tt>
+and <tt>Entry</tt> that implement <tt>Node</tt>, for putting and getting things. 
+  <i>If implemented properly, you will not need to use <tt>instanceof</tt> tests or casts.  For example, the
+    <tt>DictImpl2</tt> should never need to know whether its <tt>root</tt> is empty or not.</i>
+  Uncomment the first test case in <tt>DictTest</tt> for an example usage.
+
+<p><li> Recall <tt>dict3</tt> from Homework 2, in which we represented a dictionary as a function from keys to values.
+The class <tt>DictImpl3</tt> in <tt>hw5.java</tt> is the analogous
+implementation for Java (again generalized to be polymorphic).  Java doesn't have first-class functions (though they are coming in the next version of Java!) but they can be simulated
+  using objects.  Accordingly, <tt>DictImpl3</tt> contains a field of type <tt>DictFun<K,V></tt>,
+which represents an arbitrary function with argument type <tt>K</tt> and result type <tt>V</tt>.
+  The intent is that this function will return the value
+  associated with a given key in the dictionary, and it will throw the <tt>NotFoundException</tt> if the key
+  is not in the dictionary (this behavior is different than what we did in OCaml, where we used the <tt>option</tt>
+  type instead of throwing an exception).
+
+<p>  Right now
+<tt>DictImpl3</tt>'s constructor and methods are broken; you need to
+fix them.  You may find Java's syntax for <a href="http://docs.oracle.com/javase/tutorial/java/javaOO/anonymousclasses.html">anonymous classes</a> useful.
+Uncomment the second test case in <tt>DictTest</tt> for an example usage.
+  
+  </li>
+
+</ol>
+
+
+</body></html>

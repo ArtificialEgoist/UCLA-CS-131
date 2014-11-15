@@ -1,0 +1,196 @@
+------------------------------------------------------------------------------------------------------------------------
+
+//Safe Subtyping
+
+/* if S is a subtype of T, then objects of type S can be used where objects of type T are expected */
+
+class Exn1 extends Exception {}
+class Exn2 extends Exception {}
+class Exn3 extends Exception {}
+
+class C {
+	Object m(Object o) throws Exn1, Exn2 {
+		if (1==2)
+			throw new Exn1();
+		else if (2==3)
+			throw new Exn2();
+		return o;
+	}
+}
+
+class D extends C {
+	//D m(Object o) {return this; } //although Object is fine, D documents the return value better
+	Object m(Object o) throws Exn1, Exn2, Exn3 {
+		if (1==2)
+			throw new Exn1();
+		//else if (2==3)
+			//throw new Exn2();
+		//else if (3==4)
+			//throw new Exn3();	//it is NOT okay to have a third exception not declared in class C
+		return hi;	//it IS okay to never throw some declared exception like Exn2, however
+
+	return "hi"; } //since these have different parameter types, Java treats these methods as overloaded
+		//client.callM(new C(), new Object()) does not necessarily pass in a String as expected
+	
+	void n() {}
+}
+
+class Client {
+	Object callM(C c, Object o) {
+		return c.m(o) //client doesn't know which m is being invoked - C's or D's?
+			//works as long as some Object is returned - even String Objects
+	}
+	
+	Object callM(D d) {
+		return d.m(new Integer(34)); //SHOULD BE static error; expects String but is given Integer
+	}
+	
+	public static void main(String [] args) {
+		Client client = new Client();
+		client.callM(new C(), new Object());
+		client.callM(new D());
+	}
+}
+
+//A class must have methods that provide at least (if not more) the same guarantees as methods from the class it extends
+
+------------------------------------------------------------------------------------------------------------------------
+
+import java.util.list
+
+interface Drawable {
+	void draw();
+}
+
+class Client2 {
+	void m(List<Object> lst) {
+		lst.add(new Integer(34));
+	}
+	
+	<T extends Drawable> void printAll(List<T> lst) { //alternative: void printAll(List<?> lst)
+		for(T t : lst) //alternative: for(Object o : lst)
+			t.draw();
+	}
+	
+	void printArray(Object[] arr) {
+		arr[0] = new Integer(34);
+		for(Object o : arr)
+			System.out.println(o.toString());
+	}
+	
+	public static void main(String[] args) {
+	
+	/*
+		List<String> mylst = new LinkedList<String>();
+		mylst.add("hi"); 
+			//...
+		Client2 c2 = new Client2();
+		c2.m(mylst); //error! since we pass in a list of Strings and m could add, say, an Integer Object
+		c2.printAll(mylst);
+	*/
+	
+		Object[] arr = args; //error! same problem as before with lists; we might add Integer types instead of Strings
+		Client2 c2 = new Client2();
+		c2.printArray(arr);
+		
+	}
+	
+//Lists of Strings CANNOT be used safely as Lists of Objects; what if we added some Integer as an Object into the "Object" String list?
+
+------------------------------------------------------------------------------------------------------------------------
+
+//Modular Extensibility
+
+/*
+
+type aexp = Num of float | BinOp of aex * op * aexp
+
+let rec eval e = 
+	match e with 
+		Num n -> n
+		| BinOp (e1,op,e2) -> ...
+
+Can add new operations on aexp easily
+	-just write a new function that pattern matches on the different kinds of aexps
+	
+But suppose I want to add a new kind of expression, e.g. Sqrt
+	-update the type aexp in place
+	-update every function that manipulates aexp to handle Sqrt
+		
+*/
+
+interface AExp {
+	double eval();
+	void accept(Visitor v); //for Solution 3
+}
+
+class Num implements AExp {
+	public double eval() { return 0.0; }
+	
+	public void accept(Visitor v) { v.visitNum(this); }
+}
+
+class BinOp implements AExp {
+	public double eval() { return 0.0; }
+	
+	public void accept(Visitor v) { v.visitBinOp(this); }
+	
+}
+
+//How to add toRPN modularly (without touching existing source code)?
+
+//Solution 1: via subclassing
+
+interface AExp2 extends AExp {
+	void toRPN();
+}
+
+class Num2 extends Num implements AExp2 {
+	public void toRPN() {}
+}
+
+class BinOp2 extends BinOp implements AExp2 {
+	public void toRPN() {}
+}
+
+//Solution 2: manual dispatch
+
+class MyNewOps {
+	static void toRPN(AExp e) {
+		if(e instanceof Num) {
+			Num n = (Num) n;
+			//...
+		}
+		else if (e instanceof BinOp) {
+			BinOp b = (BinOp) b;
+			//...
+		}
+	}
+}
+
+//Solution 3: visitor design pattern
+
+interface Visitor { //or Visitor<T>
+	void visitNum(Num n)); //or T instead of void
+	void visitBinOp(BinOp b);
+}
+
+class ToRPNVisitor implements Visitor { //(class representing a new method)
+	void visitNum(Num n) {
+		//...implement toRPN for Num
+	}
+	
+	void visitBinOp(BinOp b) {
+		//...implement toRPN for BinOp
+	}
+	
+}
+
+/* from a client:
+
+AExp e = ...; //assume e is some Num
+e.accept(new ToRPNVisitor()); //dispatches to Num class to accept Visitor; this calls visitNum from the Visitor and passes itself
+
+//if e is a BinOp, the visitBinOp code is run
+
+*/

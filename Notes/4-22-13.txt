@@ -1,0 +1,155 @@
+------------------------------------------------------------------------------------------------------------------------
+
+(* HW2 *)
+
+(* swap : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c) *)
+
+let swap f = 
+	function b -> function a -> (f a b)
+	
+let swap2 f =
+	fun b a -> (f a b)
+
+let swap3 f b a = 
+	f a b
+	
+(* pipe :	('a -> 'a) list -> ('a -> 'a)
+			('a -> 'a) list -> 'a -> 'a
+*)
+
+let pipe l x =
+	List.fold_left (fun currRes currFun -> currFun currRes) x l 
+
+let pipe2 l =
+	List.fold_left (fun currRes currFun -> (function x -> currFun(currRes))) (function x -> x) l
+
+------------------------------------------------------------------------------------------------------------------------
+
+(function x -> x+1 45;;
+	Check for syntax
+(function x -> x+1) "hello";;
+	Check for type
+(function x -> x+1) 45;;
+	Perform the operation (46)
+	
+(* An OCaml Interpreter in OCaml *)
+
+(*
+	Step 1: Parsing
+		-check that the program is syntactically legal
+		-if not, signal an error
+		-if so, produce a data structure to represent the program
+			-abstract syntax tree (AST)
+			(* We've already done ASTs on HW2 *)
+			(* 1 + 2 - 3 represented as BinOp(BinOp(Num 1, Plus, Num 2), Minus, Num 3) *)
+			
+	Step 2: Typechecking
+		-if error then halt and signal an error message
+	
+	Step 3: Evaluation
+	
+	Step 4: Print the result value and the type
+	
+	Step 5. Goto Step 1
+*)
+
+(* Here's the syntax we want to support:
+		E ::= B | N | X | not E | if E then E else E | let X=E in E
+		
+		B ::= true | false
+		N ::= 0 | 1 | ...
+		X ::= variable names
+*)
+
+(* abstract syntax tree for the above grammar *)
+
+type ocamlType = BoolType | IntType
+
+type exp = Bool of bool | Int of int | Var of string | Not of exp | If of exp * exp * exp | Let of string * ocamlType * exp * exp
+	(* let (x:t) = e1 in e2				annotate types *)
+
+(* if (not true) then 1 else 0 *)
+let ex1 = If(Not (Bool true), Int 1, Int 0)
+
+(* let x = (not true) in (not x) *)
+let ex2 = Let("x", Not (Bool true), Not(Var "x"))
+
+(* the legal results of computation *)
+type value =  BoolVal of bool | IntVal of int
+
+(* expression evaluation *)
+(* env is an environment, or a list of (string, value) pairs *)
+let rec eval e env =
+	match e with
+	Bool b -> BoolVal b
+	| Int i -> IntVal i
+	| Not e0 -> 
+		(match(eval e0 env) with 
+			BoolVal b -> BoolVal not(b)
+			| _ -> raise DynamicTypeError)
+	| If(guard, thn, els) -> 
+		(match (eval guard env) with
+			BoolVal b -> (* OR USE if b then (eval thn env) else (eval els env) *)
+				(match b with
+					true -> eval thn env
+					| false -> eval els env)
+			| _ -> raise DynamicTypeError)
+	| Var x -> 
+		(try
+			List.assoc x env
+		with
+			Not_found -> raise DynamicTypeError) (* we want to prevent the error raised by List.assoc *)
+	| Let (x1,e1,e2) ->
+		let v1 = (eval e1 env) in
+			eval e2 ((x1,v1)::env) (* env does not get changed when we leave scope! *)
+			
+		(* OR eval e2 ((x1, (eval e1 env))::env) *)
+		(* first evaluate e1 in current environment *)
+(*			
+
+let ex3 = If(Let("x", Bool true, Var "x"), Bool true, Bool false);;
+
+if ( let x = true in x ) then true else false ;;
+	same as bool = true
+	
+*)
+
+exception StaticTypeError
+
+(* env is a type environment, or a list of (string, ocamlType) pairs *)
+let rec typecheck e env = (* we're not running this, only going through type checking at compile time *)
+	match e with
+		Bool b -> BoolType
+		| Int i -> IntType
+		| Not e0 -> 
+			let t0 = typecheck e0 env in
+				(match t0 with
+					BoolType -> BoolType
+					| _ ->  raise StaticTypeError)
+		| If(guard,thn,els) ->
+			let t0 = typecheck guard env in
+				(match t0 with
+					BoolType -> (* if guard is a valid BoolType, make sure t1 and t2 are same type and return that type *)
+						let (t1,t2) = (typecheck thn env, typecheck els env) in 
+							if t1=t2 then t1 else raise StaticTypeError
+					| _ -> raise StaticTypeError)
+		| Var x ->
+			(try List.assoc x env with
+				Not_found -> raise StaticTypeError)
+		(* let (x1:t1) = e1 in e2 *)
+		| Let(x1,t1,e1,e2) ->
+			if (typecheck e1 env) = t1
+			then typecheck e2 (x1,t1)::env (* augment environment, since we know x1 has type t1 *)
+			else raise staticTypeError
+			
+
+
+------------------------------------------------------------------------------------------------------------------------	
+let x = 4 in x+5;;
+	int = 9
+let x = 4 in ((function y -> y+x) 3);;
+	int = 7
+(let x = 4 in (function y -> y+x)) 3;; (* works for static scoping! y+x always uses the same x=4 inside. *)
+	int = 7
+	(* essentially evalutes to inner function with a pointer to x=4 *)
+	

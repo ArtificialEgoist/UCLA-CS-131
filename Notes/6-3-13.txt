@@ -1,0 +1,136 @@
+------------------------------------------------------------------------------------------------------------------------
+
+How Prolog Works
+--------------------
+all computation happens via "unification"
+	-given terms t1 and t2, find a "substitution" s - a mapping from variables to terms - such that s(t1) is syntactically the same as s(t2)
+		a=b. //no
+		A=b. //yes, A=b
+		f(X,b)=f(a,Y). //yes, X=a, Y=b
+		g(a,X,X)=g(Y,a,Z). //yes, X=Y=Z=a
+		g(a,X,X)=g(Y,b,Y). //no, since X=b and X=Y=a
+		f(X,Y)=f(a,Y). //yes, X=a, Y=A	
+	-the substitution that unifies two terms is called a "unifier"
+	
+key property: for any terms t1 and t2 that unify, there is always a most general unifier (MGU).
+
+s is an MGU of t1 and t2 if...
+	1. s is a unifier of t1 and t2 (meaning, s(t1) is syntactically equal to s(t2))
+	2. for any other unifier s' of t1 and t2, there exists a substitution s0 such that both:
+		s0(s(t1)) is syntactically equal to s'(t1)
+		s0(s(t2)) is syntactically equal to s'(t2)
+		(thus s' is a very constraining unifier)
+	
+Pseudocode for unification:
+	algorithm for MGU(t1,t2)
+MGU(X,X) --> {} //empty environment, since there are no constraints
+MGU(c,c) --> {}
+MGU(X,t) --> {X->t}
+MGU(t,X) --> {X->t}
+MGU(c(t1,...,tn),c(t1',...,tn'))-->
+	let s1 = MGU(t1,t1') in
+	let s2 = MGU(s1(t2),s(t2')) in
+	let s3 = MGU(s2(s1(t3)),s2(s1(t3'))) in
+	...
+	in if any recursive call returns no then "no"
+	else s1 U s2 U ... U sn
+MGU(_,_) --> no
+
+Example:
+	MGU(g(a,X,X),g(Y,b,Y)) = 
+		MGU(a,Y) --> {Y,a}
+		MGU(X,b) --> {X,b}
+		MGU(b,a) --> no
+		no
+		
+------------------------------------------------------------------------------------------------------------------------
+
+f(X,a)=f(Y,Y)
+	//yes. X=Y=a.
+	
+f(X,a)=f(Y,Y)
+	MGU(X,Y) --> {X->Y}
+	MGU(a,Y) --> {Y->a}
+	return {X->Y, Y->a}
+	need to compute the transitive closure before returning
+	
+append([], X, [a|X]). //Prolog should be doing an extra check, but since it doesn't, this will run forever
+
+------------------------------------------------------------------------------------------------------------------------
+
+Answering Queries
+--------------------
+
+Unification is a primitive that's used in the algorithm for answering queries, called "resolution"
+
+resolution(rule, list of goals):
+	s = MGU(head(rule), head(goals))
+		return s(append(tail(rule),tail(goals))).
+	
+p(f(Y)) :- q(Y), r(Y). /* 1 */
+
+q(h(Z)) :- t(Z). /* 2 */
+
+r(h(a)). /* 3 */
+
+t(a). /* 4 */
+
+	p(X).
+		X=f(h(a))
+
+/*
+resolution(1,[p(X)])
+	MGU([(X),p(f(Y)]) --> {X -> f(Y)}
+	return [q(Y),r(Y)]
+
+resolution(2,[q(Y),r(Y)])
+	MGU(q(Y),q(h(Z))) --> {Y -> h(Z)}
+	return [t(Z),r(Y)]
+	
+resolution(4,[t(Z),r(Y)])
+	MGU(t(Z),t(a)) --> {Z -> a}
+	
+resolution(3, [r(Y)])
+	MGU(r(Y),r(h(a))) --> {Y -> h(a)}	
+*/
+
+------------------------------------------------------------------------------------------------------------------------
+
+Note that the order of rules matters! Also know how to solve the goal in a tree that goes depth first, left to right.
+
+z :- z. //z() :- z().
+z. //z().
+
+		[z()]
+		/\
+	[z()]	{}
+	/\
+[z()]	{}
+...
+
+Either 0 solutions or infinite solutions.
+
+If we use:
+z.
+z :- z.
+
+The tree is a mirror image. It will keep giving solutions if we keep ask for them.
+
+------------------------------------------------------------------------------------------------------------------------
+
+reverse([1,2,3],X).
+	X=[3,2,1].
+reverse (X,[1,2,3]).
+	X=[3,2,1]?
+	Global Stack Overflow...
+
+rev([],[]).
+rev([H|T],Result) :- rev(T,R), append(R,[H],Result).
+
+			[rev([1,2],Res)]
+			/\
+		no		[rev([2],R), app(R,[1],Res)]
+				/\
+			no		[rev([],R1), app(R1,[2],Res1)]
+					/\
+				no		

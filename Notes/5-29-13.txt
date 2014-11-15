@@ -1,0 +1,134 @@
+------------------------------------------------------------------------------------------------------------------------
+
+foo(A,x) = foo(y,B).
+	A=y
+	B=x
+	yes
+	
+foo(A,1)=foo(2,B).
+	A=2
+	B=1
+	yes
+
+1+2=3.
+	no
+
+X=1+2.
+	X=1+2
+	yes	
+	
+X is 1+2.
+	X=3
+	yes
+	
+Y=34, X is 1+Y.
+	X=35
+	Y=34
+	yes
+
+X is 1+Y Y=34.
+	uncaught exception: error
+
+3<4.
+	yes
+	
+3<x.
+	uncaught exception: error //both values have to be concrete by the time we execute the comparison
+
+------------------------------------------------------------------------------------------------------------------------	
+	
+/* size(L,N) succeeds when L has N elements in it */
+
+size([],0).
+size([_|T],N) :- size(T,M), N is M+1.
+
+size([a,b,c],S).
+	S=3
+	yes
+
+------------------------------------------------------------------------------------------------------------------------
+	
+/* N-Queens */
+/* nqueens(L) is true if L contains a list of queens that cannot attack one another
+we'll represent each queen as a term of the form queen(X,Y)
+*/
+
+abs(N,N) :- N>=0.
+abs(N,M) :- N<0, M is N*-1.
+
+/* does Q1 attack Q2? */
+attacks(queen(X1,_), queen(X2,_)) :- X1 = X2.
+attacks(queen(_,Y1), queen(_,Y2)) :- Y1 = Y2.
+attacks(queen(X1,Y1), queen(X2,Y2)) :- 
+	Xdiff is X1-X2, Ydiff is Y1-Y2, abs(Xdiff,Xabsdiff),abs(Ydiff,Yabsdiff), Xabsdiff=Yabsdiff.
+
+attacksAndValid(queen(X1,Y1),queen(X2,Y2)) :- 
+	member(X1, [1,2,3,4,5,6,7,8]), 
+	member(Y1, [1,2,3,4,5,6,7,8]), 
+	member(X2, [1,2,3,4,5,6,7,8]), 
+	member(Y2, [1,2,3,4,5,6,7,8]), 
+	attacks(queen(X1,Y1),queen(X2,Y2)).
+	
+/* does Q attack anything in list L? */
+attacksAny(Q,[H|_]) :- attacksAndValid(Q,H).
+attacksAny(Q,[_|T]) :- attacksAny(Q,T).
+	
+nqueens([]).
+nqueens([queen(X,Y)|T]) :-
+	nqueens(T), 
+	member(X, [1,2,3,4,5,6,7,8]), 
+	member(Y, [1,2,3,4,5,6,7,8]),
+	\+(attacksAny(H,T)).
+	
+	FASTER THAN PLACING nqueens(T) ON THE LAST LINE BEFORE \+(attacksAny(H,T)).
+	**Put the problem-solving commands earliest so as to make the program more efficient
+
+Example:	nqueens([queen(1,1), queen(3,2)]).
+				yes
+			nqueens([queen(1,1), queen(3,3)]).
+				no
+			nqueens([queen(X1,Y1), queen(X2,Y2)]).
+				uncaught exception: error (instantiation error)
+			
+------------------------------------------------------------------------------------------------------------------------
+
+dist(ucla, ucsc, 346).
+dist(ucsd, uci, 72).
+...
+
+/* tsp(Cities, Tour, Length) succeeds if Tour is a tour of the Cities and has length Length */
+
+symDist(C1,C2,D) :- dist(C1,C2,D).
+symDist(C1,C2,D) :- dist(C2,C1,D).
+
+sumDistances([_],0).
+sumDistances([C1,C2|Rest],N) :- 
+	symDist(C1,C2,D), sumDistances([C2|Rest], M), N is D+M.
+
+tsp(Cities,[C|Cs],Length) :- 
+	permutation(Cities,Cs),
+	size(Cs,N), nth(N,Cs,C),
+	sumDistances([C|Cs],Length).
+
+Example: tsp([ucla,ucsd,ucb,uci,ucsb,ucsc,ucd], [ucla|Tour], Length).
+	yes
+	Length = ...
+	Tour = [(ucla,)...]
+	
+	We may get non-ideal solutions (with large Length), so we use fd_minimize.
+	
+	fd_minimize(tsp([ucla,ucsd,ucb,uci,ucsb,ucsc,ucd], [ucla|Tour], Length), Length).		 //Length is term to minimize
+		Length = 1115
+		Tour = [uci,ucsd,ucsb,ucsc,ucb,ucd,ucla]
+	
+Build-In Prolog Functions:
+	permutation([1,2,3],X).
+	nth(3, [1,2,3], X) //returns X=3, since index starts at 1
+	fd_minimize(...)
+	
+Predicates:
+	append(X,Y,[1,2,3]).
+	findall(X,append(X,Y,[1,2,3]),L).
+		L=[[],[1],[1,2],[1,2,3]]
+	findall([X,Y],append(X,Y,[1,2,3]),L). 		//findall(pattern, query, list)
+		

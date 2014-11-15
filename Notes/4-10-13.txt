@@ -1,0 +1,171 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Scoping:
+	
+	-global/top-level declarations (in the interpreter)
+		-in scope for all subsequent computation
+			let x = 3;;	(*has scope in the rest of the interpreter; that is, global*)
+			let x = "hello";
+	
+	-local declarations
+		-x is in scope in E2
+			let x = E1 in E2
+	
+	-function declarations
+		-scope of x is just E
+			function x -> E
+			
+	-match expression
+		match E with P1 -> E1 | P2 -> E2 | ... | Pn -> En	(*block structure*)
+		
+Static Scoping (Lexical Scoping):
+A use of variable x always refers to the nearest enclosing declaration of x
+
+	Example:
+	let x = 3 in
+		let y = x+1 in //x=3
+			let x = y+5 in	//x=3+1+5=9
+				x+y;;
+				
+let x = 45;;
+let f y = x+y;;	(*using the global value of x*)
+
+f 3;;
+	int = 48
+
+let x = 12;;
+f 3;;
+	int = 48;;
+	
+An "environment" is a mapping from variable names to their values
+
+[] //empty environment
+
+let x = 45;;
+[(x,45)]
+let f y = x+y;;
+[(x,45),(f,<fun>))]'
+let x = 12;;
+[(x,12), (f,<fun>),(x,45)]
+
+When a function is invoked, its body is evaluated in the context of the environment that existed when the function was declared.
+	This gives you status scoping.
+	
+------------------------------------------------------------------------------------------------------------------------
+
+let add x y = x+y;;
+let addTwo = add 2;;
+
+	addTwo 8;;
+		int = 10
+
+	let x = 12;;
+	addTwo 8;;
+		int = 10	(*The closest parameter of x is always 2 in this currying*)
+		
+	let y = 0;;
+	addTwo 8;;
+		int = 10	(*The value we pass in as y is actually 8 (parameter), not 0*)
+		
+------------------------------------------------------------------------------------------------------------------------
+
+let x = 45;;
+let f y = x+y;;
+
+	f 3;;
+		int = 48;;
+	let x = 12;;
+	f 3;;
+		int = 48;; //Static Scoping
+		int = 15;; //If Ocaml used Dynamic Scoping
+		
+Dynamic Scoping:
+A use of variable x always refers to the dynamically most recent declaration of x
+
+Another example under dynamic scoping:
+	let add x y = x+y;								let add = (function x -> (function y -> x+y))
+	let addTwo = add 2;
+	addTwo 8;;
+	CRASH - unbound value of x (since x has left the scope in dynamic scoping)
+	
+------------------------------------------------------------------------------------------------------------------------
+
+let rec lookup(k, map) = 
+	match map with
+		[] -> None
+		| (k1, v1)::xs -> if k=k1 then Some v1 else lookup(k, xs)
+
+(* We're using the option type to catch errors. Forces callers to handle the error.
+
+Problems:
+	1. The caller may not know how to handle the error. In that case, the caller will just pass the error back to its caller.
+		And has to continue to use an option type.
+	
+*)
+
+let lookupAndDouble(k, map) = 
+	let res = lookup(k, map) in 
+		match res with
+			None -> None
+			| Some v -> Some (v * 2)
+			
+(*Even worse if calling lookup multiple times*)
+
+(*Produce a list of all values associated with the list of keys ks. Produce None if at least one key is not mapped to a value. *)
+
+let rec lookupAll(ks, map) = 
+	match ks with
+		[] -> Some []
+		| x::xs -> 
+			match lookup(x, map) with
+				None -> None
+				| Some v -> 
+					let recursiveResult = lookupAll(xs, map) in
+						match recursiveResult with
+							None -> None
+							| Some l -> Some(v::l)
+							
+List.assoc;; (*Our function returns an option; assoc doesn't, but it throws an exception if the key is not found*)
+
+(*Exceptions*)
+
+exception Lookup_error of string	(*must be defined first?*)
+
+let rec lookup2 k map = 
+	match map with
+		[] -> raise (Lookup_error "couldn't find the key")
+		| (k1,v1)::xs -> if k=k1 then v1 else lookup2(k, xs);;
+		
+E ::= ...
+	| raise E										(throw exception)
+	| try E with P1 -> E1 | ... | Pn -> En			(catch exceptions)
+	
+let lookupAndDoubleOrZero k map =
+	try
+		(lookup2 k map) * 2
+	with
+		Not_found -> -1
+		| Lookup_error msg -> 0
+
+
+let rec lookupAll2 ks map =
+	match ks with
+		[] -> []	(*We don't need options since exceptions now handle the errors, although Some [] works too*)
+		| x::xs ->
+			(lookup2 x map)::(lookupAll2 xs map)
+		
+		(*
+			try (lookup2 x map)	with
+				Not_found -> -1
+				| Lookup_error msg -> 0
+				| _ -> lookupAll xs map
+		*)
+		
+But for example, 20 keys will return 20 values, so we could use a map:
+
+let lookupAll2Alternate ks dict =
+	try
+		List.map(function k -> lookup2 k dict) ks		(*If no exceptions found at 'try', we'll never reach 'with'*)
+	with
+		Lookup_error msg -> ...
+		| _ -> ... (*if any other exception (not lookup error), return some message*)

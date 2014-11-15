@@ -1,0 +1,205 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Midterm:
+	-in class next Monday
+	-closed book, closed notes
+	-OCaml only (no Java)
+	-concepts
+		-static and dynamic scoping
+		-static and dynamic typechecking
+		-static type inference
+		-parametric polymorphism and static overloading
+		-interface vs. implementation
+	-language features
+		-recursion
+		-first-class functions
+		-data types
+		-pattern matching
+		-exceptions
+		-modules
+		-tail recursion
+			-no continuation-passing style
+
+Scoping: in x+5, where do we get x from?	
+	Static scoping
+		-a variable use always refers to the variable of that name declared in the nearest enclosing declaration textually (lexically)
+			let x = 4 in
+				let x = 5 in
+					x+6;;
+						=> 11
+			let x = 4 in
+				(let x = 5 in x+6) + x;;
+					=> 15 //that is, 5+6+4
+			let f = 
+				let x = 4 in (function y -> x+y);;
+				let x = 17;;
+				f 3;;
+					=> 7 //our top-level x isn't reached
+	Dynamic scoping (if we don't do anything special, this happens by default; but OCaml uses static scoping)
+		-a variable use always refers to the value of that variable in the current dynamic scope (at the point where we need the value of the variable)
+
+Parametric polymorphism:
+	#let id x = x;;
+	val id: 'a -> 'a = <fun>
+	
+	'a is a *type variable*
+	think of the type of id as equilvalent
+	
+	for all T,T
+
+------------------------------------------------------------------------------------------------------------------------
+
+Java
+	-an interface defines a type and associated operations
+		interface Set {...}
+	
+	-a class defines the implementation of a type
+		class ListSet implements Set {...}
+	
+	-two kinds of polymorphism
+		-parametric polymorphism
+			interface List <E> {
+				bool contains(E e);
+				E get(int i);
+			}
+		
+		-subtype polymorphism
+			interface RemovableSet extends Set {
+				void remove(String s);
+			}
+
+------------------------------------------------------------------------------------------------------------------------
+
+Inheritance
+
+interface RemovableSet extends Set {
+	void remove(String s);
+}
+
+//RemovableListSet inherits from (is a subclass of) ListSet
+class RemovableListSet extends ListSet implements RemovableSet { //by extending, we are inheriting from ListSet
+	
+	RemovableListSet() {super;}
+	
+	public void remove(String s) {
+		elems.remove(s);
+	}	
+	
+}
+
+/*
+
+	class C implements interface I :
+		-instances of class C have type I
+		-C is a subtype of I
+		
+	interface I1 extends interface I2 :
+		-I1 is a subtype of I2
+	
+	class C1 extends class C2 : 
+		-C1 is a subtype of C2
+		-C1 inherits all the code from C2
+		
+*/
+
+/*
+
+	Subtyping vs. Inheritance (Subclassing)
+	
+	subtyping is about interface compatibility
+		-if S is a subtype of T, then we can pass S objects where Ts are expected
+			-doesn't say anything about the implementation of S and T
+			
+	inheritance is about code reuse and implementations
+		-if C inherits from D, then C and D share some code
+			-doesn't say anything about whether they have compatible interfaces
+
+*/
+
+//Example where I want subtyping without inheritance
+
+class Rectangle {
+	float length, width;
+		//...methods
+}
+
+//I want to define a class of Squares
+//I want Square to be a subtype of Rectangle
+//I don't want to implement it like this below, since we don't need or want two length/width floats
+class Square extends Rectangle {
+	...
+}
+
+//Solution: define a common interface
+
+interface Rect {
+	float area();
+	//...
+}
+
+class Rectangle implements Rect {...}
+class Square implements Rect {...}
+
+
+//Example where I want inheritance but not subtyping
+
+class Bag {
+	Object[] elements;
+	int length;
+	
+	int size() {return 0; }
+		//...
+}
+
+//bad idea below, since Bags allow duplicates while Sets do not; we do not want a Set to be a Bag
+class Set extends Bag {
+}
+
+//Solution: define a common abstract class
+
+abstract class Collection {
+	Object[] elements;
+	int length;
+	
+	int size() {return 0; }
+		//...
+		
+	abstract...
+}
+
+class Bag extends Collection {...}
+class Set extends Collection {...}
+
+/* Dynamic dispatch */
+
+class C {
+	//method overriding
+	void m() {System.out.println("C.m()"); }
+}
+
+/* overriding versus overloading
+
+	-overloading is static
+		-determine which method is invoked based on the static types of the arguments
+			1+2 versus 1.1+2.2
+	-overriding is dynamic
+		-determine which method is invoked based on the run-time value of the receiver object
+			-which class the object is an instance of
+*/
+			
+class Main {
+	public static void main(String[] args) {
+		C c = new C();
+		c.m();
+		D d = new D();
+		d.m();
+		C c2 =  new D();
+		c2.m();
+		
+		System.out.println("==========");
+		
+		n.();
+		d.();
+		c2.n();
+		}
+}

@@ -1,0 +1,198 @@
+------------------------------------------------------------------------------------------------------------------------
+
+34;;
+	int = 34
+34+23;;
+	int = 57
+let square x = x*x;;
+	int -> int = <fun>
+	
+Types:
+==========	
+What is a type?
+	-A set of values (example: int is the set of all 32-bit integers)
+
+What's a value?
+	-A legal result of a computation
+	
+What is a value of type...
+	-int * bool?
+		(1, true)
+	-int list
+		[1;2;3]
+	-int -> bool
+		(function x -> (x mod 2)=0)	(* function that checks if x is even *)
+
+------------------------------------------------------------------------------------------------------------------------
+		
+Several dimensions of typechecking
+==========
+Static vs. dynamic typechecking
+
+(function x -> (x mod 2)=0) 34;;
+	bool = true
+
+1::"hello"::[];;
+
+*static typechecking
+	-classify each program expression with a type
+	-at *compile time*, before running the program
+	-if an expression E is given type T, then at run time, E will evaluate to a value in T's set of values
+		-E's evaluation might not terminate
+		-E might throw an exception
+	-advantages:
+		-catch errors early
+			-"type errors" are caught
+			-invoke an operation with arguments of the wrong type
+				-e.g., invoking + with args that are not ints
+		-program documentation
+		-types allow programmers to define their own abstractions
+			-datatypes in OCaml
+		-efficiency
+			-don't need to check (many) things at run time
+			-compiler can generate optimized code for a particular type
+	-disadvantages:
+		-may need to duplicate code to satisfy the typechecker
+		-static typechecking is necessarily conservative
+			-can reject programs that are actually just fine
+
+(if 1=0 then 1 + "hello" else "hello");;
+	We know that 1+"hello" would never get executed since 1!=0, but static typechecking doesn't know that and will signal an error.
+	
+*dynamic typechecking
+	-there's no notion of types in the program source (OCaml has an option of doing so)
+	-at run time, immediately before a *primitive* operation is invoked, check that the values of the operands have the right type
+		-typically a "tag check"
+	-principle: catch an error only when it is about to happen
+	
+Examples of statically typed languages:
+	OCaml, C, C++, Java
+
+Examples of dynamically typed languages:
+	Python, PHP, Javascript, Lisp
+
+Key Difference:
+	-static typechecking can give strong guarantees about all possible executions of a program [good for programs meant for other people, i.e. libraries, etc.]
+	-static typechecking can give strong guarantees without having access to the whole program (*modular* typechecking)
+	
+Example: square function
+	-static typechecking gives a guarantee for all possible callers of square
+	-if you pass an int, the function will not crash (with a type error) and will give you back an int
+	-dynamic typechecking can only guarantee correctness of a particular execution
+
+type intOrString = A of String | B of int;;
+(B 1)::(A "hello")::[];;
+	intOrString list = [B 1; A "hello"]
+(1, "hello")::[];;
+	(int * string) list = [(1, "hello)]
+
+Strong typed vs. weakly typed:
+	-strongly typed means the language never allows an operation to be invoked with operands of the wrong type
+		-every language other than C/C++ are strongly typed
+	-weakly typed means that the language allows some type errors to go undetected
+		-just C and C++
+		-example: unchecked casts, out-of-bounds array access, null dereferences, dangling pointers
+		
+		key point: weakly typed languages don't pay the run-time cost of *memory safety*, while strongly typed languages do
+		-can't read or write outside of the bounds of an object/array that you've allocated
+
+statically, strongly typed: OCaml, Java
+dynamically, strongly typed: Python, Javascript
+
+statically, weakly typed: C, C++
+dynamically, weakly typed: None
+
+Static typechecking vs. static type inference:
+	-require type annotations or not?
+	-static typechecking requires annotations on all variables
+	-static type inference does an analysis to figure out a variable's type based on how the variable is used
+	
+------------------------------------------------------------------------------------------------------------------------
+
+Parametric Polymorphism
+=========================
+
+let rec length l =
+	match l with
+	[] -> 0
+	| _::xs -> 1 + (length xs);;
+
+	val length: 'a list -> int = <fun>
+	
+length [1;2;3];;
+	int = 3
+length [(1, "hi"); (2, "bye")];;
+	int = 2
+
+'a is a *type variable*
+	-can be *instantiated* with any type
+	-this instantiation is happening at compile time
+	length [1;2;3]
+
+Another example: swap	
+let swap (x,y) = (y,x);;
+	val swap: 'a * 'b -> 'b * 'a = <fun>
+	
+How do we typecheck a function call?
+
+Suppose we know square: int -> int. How do we typecheck (square 4)?
+	-type of square is int -> int [typecheck the function]
+	-type of 4 is int [typecheck the argument]
+	-check that the formal and actual argument types are the same
+	-the result type of the function is the type of the whole thing
+
+How do we typecheck (swap(1, "hi"))?
+	-typecheck the function (swap: 'a * 'b -> 'b * 'a)
+	-typecheck the argument (1, "hi"): int * string
+	-find an instantiation of 'a and 'b that makes the formal and actual argument types the same ('a = int, 'b = string)
+	-overall type is the *instantiated* version of the function's result type (string * int)
+	
+Summary of Parametric Polymorphism:
+	-one piece of code (typically a function)
+	-used with multple types of values (arguments)
+	-makes the static typechecker more expressive
+		-would have to duplicate code otherwise
+
+Don't confuse this with static overloading!
+	-multiple pieces of code (typically functions)
+	-but they (happen to) have the same name (not in OCaml; the functions just overwrite each other)
+	
+	-static typechecker uses the types of the arguments to determine which function is being used
+	
+	-example in Standard ML (not OCaml)
+		3 + 4 vs. 3.3 + 4.4
+		
+( :: ): 'a * 'a list -> 'a list
+
+4 = 4;;
+	bool = true
+4.3 = 4.3;;
+	bool = true
+[1;2;3] = [1;2;3];;
+	bool = true
+
+(=);; 'a -> 'a -> bool (* Doesn't work for all types, such as functions! So this is kind of overloaded *)
+
+(function x -> x+1) = (function x -> x+1);;
+
+let rec count e l = 
+	match l with
+	[] -> 0
+	| x::xs -> (if e=x then 1 else 0) + (count e xs);;
+	
+count 3 [1;2;3;4;3];;
+	int = 2
+count true [true; false; true; false];;
+	int - 2
+count (function x -> x+1) [(function x -> x)];;
+	Exception!
+	
+let rec count e l eqFun = (* pass in a user-defined equality function (filter-like function) to make it more general *)
+	match l with
+	[] -> 0
+	| x::xs -> (if (eqFun x e) then 1 else 0) + (count e xs eqFun);;
+
+val count: 'a -> 'b list -> ('b -> 'a -> bool) -> int = <fun>
+
+count 4 [1;2;3;4;4;4;] (=);;
+	int = 3

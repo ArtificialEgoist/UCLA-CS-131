@@ -1,0 +1,171 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Object Oriented Design
+-------------------------
+
+each object is hidden behind some interface
+
+objects communicate just by sending messages to each other
+
+Example: chess game
+
+	interface GridLocation {...}
+
+	class Board {
+		Piece whatPiece(GridLocation) {...}
+		boolean move(Player p, GridLocation start, GridLocation end) {
+			Piece p = this.whatPiece(start);
+			if no piece is there (p==NULL or some exception) or it's not Player p's piece
+				return false;
+			
+			//THE WRONG WAY
+			if (p instanceof Pawn) {
+				Pawn pawn = (Pawn) p;
+				check that pawns can make this move
+				make the move
+			}
+			else if (p instanceof Rook) {
+				Rook rook = (Rook) p;
+				check that rooks can make this move
+				make the move
+			}
+			...
+			
+			//THE RIGHT WAY
+			if(p.isLegalMove(start, end))
+				p.makeMove(start, end, this); //or simply make the move here
+			
+		}
+		
+	}
+
+	interface Piece {
+		boolean isLegalMove(GridLocation start, GridLocation end);
+		void makeMove(GridLocation start, GridLocation end, Board b);
+	}
+	
+	class Pawn implements Piece {...}
+	class Rook implements Piece {...}
+	
+	------------------------------------------------------------------------------------------------------------------------
+	
+	import java.util.*;
+	
+	class ExnTest {
+		public static void main(String[] args) {
+			List<String> l = new LinkedList <String>();
+			//for(int i = 0; i<args.length; i++)
+				//l.add(args[i]);;
+			for(String s : args)
+				l.add(s);
+			
+			String val = l.get(2);
+			System.out.println("the third list element is " + val);			
+		}
+	}
+	
+	class MyException extends Exception {...}
+	
+	class MyArrayList () {elems = new String[10]; }
+	
+	void add (String x) {
+		//may need to resize, ignoring that
+		elems[size] = s;
+		size++;
+	}
+	
+	String get(int index) throws MyException, MyOtherException {
+		if(index>==size)
+			throw new MyException();
+		else if (index<0)
+			throw new MyOtherException();
+		else
+			return elems[index];
+			
+	String get2(int index) throws MyException {
+		try {
+			return get(index);	//we're not catching the exceptions being thrown, so we document that again with "throws MyException"
+		} catch (MyOtherException e) {
+			System.out.println("hi");
+		}
+		return "error";
+	}
+	
+	public static void main(String[] args) {
+		MyArrayList l = new MyArrayList();
+		try{ 
+			l.get2(-1);
+			Strings s = null;
+			int i = s.length();
+			l.get(-1);
+			//...			
+		} catch(IndexOutOfBoundsException e) {
+			System.out.println("caught an exception");
+		} catch(MyException e) {
+			System.out.println("caught a MyExpression");
+		} catch(MyOtherException e) {
+			System.out.println("caught a MyOtherExpression");
+		} catch(exception e) {
+			System.out.println(e.getMessage()); 
+			System.out.println("caught under some other expception"); 
+		}
+	}
+
+//Exception Safety
+/*
+Have to make sure that your state remains consistent, regardless of whether an exception occurs
+*/
+
+class Point {
+	int x, y;	
+	
+	//guarantee that I want to provide: either both x and y get updated or neither does
+	void update() throws MyException, MyOtherException {
+			//save the old value of x
+		int oldX = x;
+		this.updateX(); //if x throws exception, neither is updated
+		try {
+			this.updateY();
+		} catch (MyOtherException e) { //if y throws exception, we must reset x and rethrow the exception
+			this.x = oldX;
+			throw e;
+		}
+	}
+	
+	private void updateX() throws MyException {
+		//do some computation (or throw exception)
+		//update this.x
+	}
+	
+	private void updateY() throws MyOtherException {
+		//do some computation (or throw exception)
+		//update this.y
+	}
+
+	//another example
+	void readFromFile(File f) throws MyException {
+		String s = f.read();
+		try {
+			compute(s); //this may throw a MyException
+			//f.close(); //or we can leave it at the bottom
+		} catch (MyException e) {
+			f.close();
+			throw e;
+		}
+		f.close();
+	}
+
+	//equivalent way to write the above
+	void readFromFile2(File f) throws MyException {
+		String s = f.read();
+		try {
+			compute(s); //this may throw a MyException
+		} finally {
+			f.close(); //regardless of try results, we always end with this finally block
+						//if we have an exception, we still execute this finally block, then throw the exception
+		}
+	}
+	
+	try {...} catch {...} finally {...}
+	
+}

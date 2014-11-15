@@ -1,0 +1,88 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Fork-Join Parallelism
+
+Parallelism vs. Concurrency (Using extra resources to solve a problem faster VS. managing access to shared resources)
+Similarities: both use threads
+
+------------------------------------------------------------------------------------------------------------------------
+
+Fork: running threads in parallel
+Join: waiting for threads to finish
+
+Key invariant must be maintained by programmer: no race conditions!
+
+Limitations of our Algorithm:
+1. ...
+2. Want to (only) use threads available right now
+3. Threads might take significantly different amounts of time (and we're bound by the slowest one)
+
+How do we partition the work? Use recursion. Recursion by divide-and-conquer for O(log n). 
+
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
+
+class SumTask extends RecursiveTask<Long> {
+	
+	private int[] arr;
+	private int start, end;
+	
+	private int CUTOFF = 500;
+	
+	SumTask(int arr[], int start, int end) {
+		this.arr = arr;
+		this.start = start;
+		this.end = end;
+	}
+	
+	public Long compute() {
+	
+		if (end-start<CUTOFF) {
+			long sum = 0;
+			for(int i=start; i<end; i++)
+				sum += arr[i];
+			return sum;
+		}
+	
+		int mid = (start+end)/2; //let's have start=0 inclusive, end=length exclusive
+		
+		SumTask left = new SumTask(arr, start, mid)
+		SumTask right = new SumTask(arr, mid, end);
+		
+		left.fork(); //spawn a thread
+		right.fork();
+		Long l1 = left.join();
+		Long l2 = right.join();
+		
+		/*
+		left.fork();
+		long l2 = right.compute();
+		long l1 = left.join();
+		*/
+		
+		return l1 + l2;
+	}
+}
+
+class Sum {
+
+	public static void main(String[] args) {
+		int size = Integer.parseInt(args[0]);
+		int[] a = new int[size];
+		for(int=0; i<size; i++) {
+			a[i]=i;
+		}
+		Fork Join Pool fjp = new ForkJoin Pool();
+		System.out.println(fjp.invoke(new SumTask(a, 0, size)));
+		
+	}
+}
+
+------------------------------------------------------------------------------------------------------------------------
+
+Google: MapReduce (Functional Programming)
+
+uses implement two functions:
+-one to pass to map [map]
+-one to pass to reduce (aka fold) [reduce]
+

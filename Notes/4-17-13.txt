@@ -1,0 +1,226 @@
+------------------------------------------------------------------------------------------------------------------------
+
+Homework #2 Review:
+
+type whatever = A of int | B of string;;
+
+let myFun w = 
+	match w with
+	A i -> i
+	| B s -> String.length s;;
+
+==================================================
+	
+type somethingElse = A of int | B of (int -> int);;
+
+let myOtherFun s = 
+	match s with
+	A i -> i
+	| B f -> f 34;;
+
+------------------------------------------------------------------------------------------------------------------------
+
+(* integer sets *)
+type set = Empty | Elem of int * set
+
+let emptyset = Empty
+
+let rec contains e s = 
+	match s with
+		Empty -> false
+		| Elem(x,xs) -> e=x || (contains e xs)
+	
+let insert e s =
+	if (contains e s) then s else Elem(e,s)				(* sets cannot have duplicates by definition *)
+
+These functions prevent duplicates. If we do insert 1 (insert 1 emptyset);;, we get back Elem(1, Empty).
+But the set type is exposed, and someone else could bypass our functions.
+
+No way to separate *interface* from *implementation*
+	Why might we want to hide implementation details?
+		
+	-allows us to ensure that certain invariants always hold
+		-e.g., that sets have no duplicates
+		-gives a strong guarantee to all cients
+		-might be necessary for my code to work properly
+	-provide forms of security
+	-gives implementer the flexibility to change the implementation
+		-clients are unaffected as long as the interface stays the same
+	-modular program understanding
+
+------------------------------------------------------------------------------------------------------------------------
+
+Modules (also called "structures") in OCaml
+	Module: a sequence of declarations that we give a name
+	
+	module Point = 
+		struct
+			let x = 3.0
+			let y = 4.0
+			let distSquared x y = x*.x +. y*.y
+		end
+
+	x;;	(* not in scope; we have to use Point.x *)
+	
+	module Point2 = 
+		struct
+			type t = Cartesian of float*float | Polar of float*float
+			let origin = Cartesian(0.0,0.0)
+			let dist(p1, p2) = ...
+			
+			let distSquared x y = x*.x +. y*.y
+		end
+
+------------------------------------------------------------------------------------------------------------------------
+
+	module type SET = 
+		sig
+			type t (* abstract type *)
+			val emptyset : t
+			val contains  : int -> t -> bool
+			val insert: int -> t -> t
+	
+	module Set:SET = (* turn integer set into a module *)
+		struct
+			type t = Empty | Elem of int * t
+
+			let emptyset = Empty
+
+			let rec contains e s = 
+				match s with
+					Empty -> false
+					| Elem(x,xs) -> e=x || (contains e xs)
+				
+			let insert e s =
+				if (contains e s) then s else Elem(e,s)
+
+After changing type t to abstract type, Set.Elem(1, Set.Elem(1, Set.Empty));; no longer works - we don't know what Elem is.
+
+Set.emptyset;;
+	Set.t = <abstr>
+Set/insert 1 (Set.insert 1 Set.emptyset);;
+	Set.t = <abstr>
+				
+------------------------------------------------------------------------------------------------------------------------
+
+module Set2:SET = 
+	struct
+		(* t is a *type synonym* for int list; another name for that type, rather than a new type *)
+		type t = int list
+		
+		let emptyset = []
+		
+		let rec contains = List.mem
+		
+		let insert e s = 
+			if (contains e s) then s else e::s
+	end
+
+Note that Set.t and Set2.t are different! (We can't call Set.insert1 Set2.emptyset;;)
+
+------------------------------------------------------------------------------------------------------------------------
+
+(* How to allow clients to use their own equality function? *)
+(* Answer: add an extra parameter to each function - an equality operator *)
+
+module SetEq:SET = (* turn integer set into a module *)
+	struct
+		type t = Empty | Elem of int * t
+
+		let rec contains e s eqF = 
+			match s with
+				Empty -> false
+				| Elem(x,xs) -> (eqF e x) || (contains e xs)
+			
+		let insert e s =
+			if (contains e s eqF) then s else Elem(e,s)
+			
+		let emptyset = Empty (* order here doesn't matter *)
+		
+SetEq.emptyset;;
+	SetEq.t = SetEq.Empty
+SetEq.insert 1 SetEq.emptyset (fun x y -> (x=y));;
+
+(* Problem with above:
+	-annoying, verbose, tedious
+	-can't ensure that all calls use the same equality function
+*)
+
+(* Answer2: Define the set module as a *parameterized* module
+	-parameterize the set module by another module
+
+	A parameterized module is also called a *functor*
+*)
+
+module type EQ = 
+	sig
+		val eq : int -> int -> bool
+	end
+
+module SetEq2(Eq:EQ):SET = 
+	struct
+		type t = Empty | Elem of int * t
+
+		let rec contains e s = 
+			match s with
+				Empty -> false
+				| Elem(x,xs) -> (Eq.eq e x) || (contains e xs)
+			
+		let insert e s =
+			if (contains e s) then s else Elem(e,s)
+		
+		let emptyset = Empty
+end
+
+SetEq2.emptyset;; doesn't work, as SetEq2 is no longer a module; it's a function that produces a module, a functor.
+Instead, do...
+
+module MyEq:EQ = struct
+	let eq x y = (x=y)
+end;;
+
+module MySet = SetEq2(MyEq);;
+MySet.insert 1 MySet.emptyset;;
+	MySet.t = MySet.Elem(1, MySet.Empty)
+
+(* Polymorphism - better to use the one below*) 
+
+module Set:SET = 
+	struct
+		type 'a t = Empty | Elem of 'a * 'a t
+
+		let emptyset = Empty
+
+		let rec contains e s = 
+			match s with
+				Empty -> false
+				| Elem(x,xs) -> e=x || (contains e xs)
+			
+		let insert e s =
+			if (contains e s) then s else Elem(e,s)
+	
+(* Can also now easily make sets polymorphic *)
+
+module type EQPOLY = 
+	sig
+		type t
+		val eq : t -> t -> bool
+	end
+
+module SetPoly2(Eq:EQPOLY) =
+	struct
+		type t = Empty | Elem of Eq.t * t
+
+		let rec contains e s = 
+			match s with
+				Empty -> false
+				| Elem(x,xs) -> (Eq.eq e x) || (contains e xs)
+			
+		let insert e s =
+			if (contains e s) then s else Elem(e,s)
+		
+		let emptyset = Empty
+end
+	
+------------------------------------------------------------------------------------------------------------------------
+
